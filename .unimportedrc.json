@@ -1,0 +1,46 @@
+{
+  "extensions": [".ts", ".tsx", ".js", ".jsx"],
+  "entry": [
+    "index.js",
+    "app/entry.client.tsx",
+    "app/entry.server.tsx",
+    "app/root.tsx",
+    "app/routes/**/*.{js,jsx,ts,tsx}",
+    "app/**/*.test.{js,jsx,ts,tsx}",
+    "server/dev-server.js",
+    "server/index.ts",
+    "tailwind.config.ts",
+    "vitest.config.ts",
+    "postcss.config.js",
+    "playwright.config.ts",
+    "remix.config.js",
+    ".eslintrc.cjs",
+    ".prettierrc.js",
+    "other/build-icons.ts",
+    "other/build-server.ts",
+    "server/dev-server.js",
+    "prisma/seed.ts",
+    "other/sly/sly.json"
+  ],
+
+  "pathTransforms": {
+    "(.*)\\.js$": "$1"
+  },
+  "ignorePatterns": [
+    "**/node_modules/**/*.*",
+    "**/build/**/*.*",
+    "**/public/build/**/*.*",
+    "**/*.d.ts"
+  ],
+  "ignoreUnimported": [
+    "other/sentry-create-release.js",
+    "other/setup-swap.js",
+    "other/sly/transform-icon.ts"
+  ],
+  "ignoreUnused": [
+    "autoprefixer",
+    "cross-env",
+    "eslint-plugin-remix-react-routes"
+  ],
+  "ignoreUnresolved": []
+}
