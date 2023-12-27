@@ -212,11 +212,7 @@ function App() {
 
 	return (
 		<Document nonce={nonce} theme={theme} env={data.ENV}>
-			<div className="flex h-screen flex-col justify-between">
-				<div className="flex-1">
-					<Outlet />
-				</div>
-			</div>
+			<Outlet />
 			<EpicToaster toast={data.toast} />
 			<EpicProgress />
 		</Document>
