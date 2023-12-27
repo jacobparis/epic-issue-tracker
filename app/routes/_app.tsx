@@ -24,8 +24,8 @@ function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
 				clsx(
 					'block rounded-sm px-4 py-1 text-sm font-medium',
 					isActive
-						? 'bg-background text-neutral-900'
-						: 'text-neutral-600 hover:bg-background hover:text-neutral-900',
+						? 'bg-muted text-neutral-900'
+						: 'text-neutral-600 hover:bg-muted hover:text-neutral-900',
 				)
 			}
 		>
