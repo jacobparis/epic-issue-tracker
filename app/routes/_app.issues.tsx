@@ -1,7 +1,11 @@
+import { parse } from '@conform-to/zod'
+import { invariant } from '@epic-web/invariant'
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
 import { Form } from '@remix-run/react'
+import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
+import { prisma } from '#app/utils/db.server.ts'
 
 export const meta: MetaFunction = () => [
 	{
@@ -9,8 +13,56 @@ export const meta: MetaFunction = () => [
 	},
 ]
 
+
+const CreateFormSchema = z.object({
+	title: z.string().min(1),
+	description: z.string().optional(),
+})
+
 export async function action({ request }: DataFunctionArgs) {
-	return json({})
+	const formData = await request.formData()
+	const submission = parse(formData, {
+		schema: CreateFormSchema,
+	})
+
+	if (!submission.value) {
+		return json({ status: 'error', submission } as const, { status: 400 })
+	}
+
+	await prisma.$transaction(async tx => {
+		invariant(submission.value, 'submission.value should be defined')
+
+		const highestId = await tx.issue.findFirst({
+			where: {
+				project: 'EIT',
+			},
+			orderBy: {
+				number: 'desc',
+			},
+			select: {
+				number: true,
+			},
+		})
+
+		await tx.issue.create({
+			data: {
+				project: 'EIT',
+				number: highestId ? highestId.number + 1 : 1,
+				title: submission.value.title,
+				description: submission.value.description,
+				status: 'todo',
+				priority: 'medium',
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		})
+	})
+
+	return json({
+		success: true,
+		submission,
+	})
+}
 }
 
 export default function Issues() {
