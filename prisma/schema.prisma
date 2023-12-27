@@ -167,3 +167,19 @@ model Connection {
 
   @@unique([providerName, providerId])
 }
+
+model Issue {
+  id          String @id @default(cuid())
+
+  project     String 
+  number      Int
+  @@unique([project, number]) // ABC-123 is unique
+
+  title       String
+  description String?
+  priority    String?
+  status      String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
