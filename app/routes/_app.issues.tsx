@@ -1,7 +1,7 @@
 import { parse } from '@conform-to/zod'
 import { invariant } from '@epic-web/invariant'
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
-import { Form } from '@remix-run/react'
+import { Form, useLoaderData } from '@remix-run/react'
 import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
@@ -12,7 +12,6 @@ export const meta: MetaFunction = () => [
 		title: 'Issues',
 	},
 ]
-
 
 const CreateFormSchema = z.object({
 	title: z.string().min(1),
@@ -63,11 +62,43 @@ export async function action({ request }: DataFunctionArgs) {
 		submission,
 	})
 }
+
+export async function loader({ request }: DataFunctionArgs) {
+	const issues = await prisma.issue.findMany({
+		orderBy: {
+			createdAt: 'desc',
+		},
+		select: {
+			id: true,
+			number: true,
+			title: true,
+			status: true,
+			priority: true,
+			createdAt: true,
+		},
+	})
+
+	return json({
+		issues,
+	})
 }
 
 export default function Issues() {
+	const { issues } = useLoaderData<typeof loader>()
+
 	return (
 		<div className="mx-auto max-w-4xl p-4">
+			<div>
+				{issues.map(issue => (
+					<div key={issue.id} className="flex border-b">
+						<div className="px-4 py-2 align-middle">{issue.number}</div>
+						<div className="w-full px-4 py-2 align-middle">{issue.title}</div>
+						<div className="px-4 py-2 align-middle">{issue.status}</div>
+						<div className="px-4 py-2 align-middle">{issue.priority}</div>
+					</div>
+				))}
+			</div>
+
 			<div className="mt-8">
 				<Form method="POST">
 					<Field
