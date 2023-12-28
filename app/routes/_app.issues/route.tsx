@@ -73,6 +73,7 @@ export async function loader({ request }: DataFunctionArgs) {
 		},
 		select: {
 			id: true,
+			project: true,
 			number: true,
 			title: true,
 			status: true,

@@ -1,6 +1,7 @@
 import { type Issue } from '@prisma/client'
 import { type SerializeFrom } from '@remix-run/node'
 
+import { Link, useNavigate } from '@remix-run/react'
 import {
 	useReactTable,
 	type ColumnDef,
@@ -18,13 +19,25 @@ import {
 
 type IssueRow = Pick<
 	SerializeFrom<Issue>,
-	'id' | 'number' | 'title' | 'status' | 'priority' | 'createdAt'
+	'id' | 'number' | 'project' | 'title' | 'status' | 'priority' | 'createdAt'
 >
 
 export const columns: ColumnDef<IssueRow>[] = [
 	{
 		accessorKey: 'number',
 		header: '#',
+		cell({ row }) {
+			const idString = String(row.original.number).padStart(3, '0')
+
+			return (
+				<Link
+					to={`/issues/${row.original.project}-${row.original.number}`}
+					className="min-w-[4rem] text-muted-foreground"
+				>
+					{idString}
+				</Link>
+			)
+		},
 	},
 	{
 		header: 'Title',
@@ -60,6 +73,8 @@ export const columns: ColumnDef<IssueRow>[] = [
 ]
 
 export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
+	const navigate = useNavigate()
+
 	const table = useReactTable({
 		data: issues,
 		columns,
@@ -104,9 +119,17 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 							<TableRow
 								key={row.id}
 								data-state={row.getIsSelected() && 'selected'}
+								className="cursor-pointer hover:bg-background/50 data-[state=selected]:bg-background"
 							>
 								{row.getVisibleCells().map(cell => (
-									<TableCell key={cell.id}>
+									<TableCell
+										key={cell.id}
+										onClick={event => {
+											navigate(
+												`/issues/${row.original.project}-${row.original.number}`,
+											)
+										}}
+									>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}
 									</TableCell>
 								))}
