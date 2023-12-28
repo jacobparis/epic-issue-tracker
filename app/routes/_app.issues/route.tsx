@@ -1,3 +1,5 @@
+// http://localhost:3000/issues
+
 import { parse } from '@conform-to/zod'
 import { invariant } from '@epic-web/invariant'
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
@@ -6,6 +8,7 @@ import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
+import { IssuesTable } from './IssuesTable'
 
 export const meta: MetaFunction = () => [
 	{
@@ -88,16 +91,7 @@ export default function Issues() {
 
 	return (
 		<div className="mx-auto max-w-4xl p-4">
-			<div>
-				{issues.map(issue => (
-					<div key={issue.id} className="flex border-b">
-						<div className="px-4 py-2 align-middle">{issue.number}</div>
-						<div className="w-full px-4 py-2 align-middle">{issue.title}</div>
-						<div className="px-4 py-2 align-middle">{issue.status}</div>
-						<div className="px-4 py-2 align-middle">{issue.priority}</div>
-					</div>
-				))}
-			</div>
+			<IssuesTable issues={issues} />
 
 			<div className="mt-8">
 				<Form method="POST">
