@@ -52,7 +52,7 @@ export default function Issues() {
 				current={`${issue.project}-${String(issue.number).padStart(3, '0')}`}
 			/>
 			<div className="mt-8">
-				<Form method="POST">
+				<Form method="POST" key={`${issue.project}-${issue.number}`}>
 					<Field
 						labelProps={{ children: 'Title' }}
 						inputProps={{
