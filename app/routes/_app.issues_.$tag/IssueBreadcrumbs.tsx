@@ -27,14 +27,14 @@ export function IssueBreadcrumbs({ current }: { current: string }) {
 			</div>
 
 			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
-				<Button variant="outline" asChild size="sm">
+				<Button variant="outline" asChild size="icon">
 					<Link to="prev" prefetch="intent">
 						<span className="sr-only"> Previous </span>
 						<Icon name="caret-up" className="h-6 w-6" />
 					</Link>
 				</Button>
 
-				<Button variant="outline" asChild size="sm">
+				<Button variant="outline" asChild size="icon">
 					<Link to="next" prefetch="intent">
 						<span className="sr-only"> Next </span>
 						<Icon name="caret-down" className="h-6 w-6" />
