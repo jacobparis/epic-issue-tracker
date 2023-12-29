@@ -10,6 +10,8 @@ export type IconName =
 	| 'caret-right'
 	| 'caret-up'
 	| 'check'
+	| 'chevron-down'
+	| 'chevron-up'
 	| 'clock'
 	| 'cross-1'
 	| 'dots-horizontal'

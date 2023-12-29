@@ -2,8 +2,9 @@
 
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
 import { Form, useLoaderData } from '@remix-run/react'
-import { Field } from '#app/components/forms.tsx'
+import { Field, SelectField } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
+import { SelectGroup, SelectItem } from '#app/components/ui/select'
 import { prisma } from '#app/utils/db.server.ts'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
 import { parseProjectAndNumber } from './parseProjectAndNumber'
@@ -53,6 +54,41 @@ export default function Issues() {
 			/>
 			<div className="mt-8">
 				<Form method="POST" key={`${issue.project}-${issue.number}`}>
+					<div className="flex w-full gap-x-4">
+						<SelectField
+							className="max-w-[20ch] grow"
+							labelProps={{ children: 'Status' }}
+							inputProps={{
+								name: 'status',
+								defaultValue: issue.status ?? undefined,
+							}}
+						>
+							<SelectGroup>
+								{['todo', 'in-progress', 'done'].map(value => (
+									<SelectItem key={value} value={value}>
+										{value}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectField>
+
+						<SelectField
+							className="max-w-[20ch] grow"
+							labelProps={{ children: 'Priority' }}
+							inputProps={{
+								name: 'priority',
+								defaultValue: issue.priority ?? undefined,
+							}}
+						>
+							<SelectGroup>
+								{['low', 'medium', 'high'].map(value => (
+									<SelectItem key={value} value={value}>
+										{value}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectField>
+					</div>
 					<Field
 						labelProps={{ children: 'Title' }}
 						inputProps={{
