@@ -15,9 +15,9 @@ export function IssueBreadcrumbs({ current }: { current: string }) {
 	})
 
 	return (
-		<div className="flex items-center justify-between border-b py-2">
-			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
-				<Button variant="ghost" asChild size="sm" className="-mx-3">
+		<div className="flex items-center justify-between">
+			<div className="flex items-center gap-x-2 px-4 text-sm text-muted-foreground">
+				<Button variant="ghost" asChild size="sm" className="-mx-2">
 					<Link to="/issues" prefetch="intent">
 						All issues
 					</Link>
@@ -26,7 +26,7 @@ export function IssueBreadcrumbs({ current }: { current: string }) {
 				<span className="font-medium">{current}</span>
 			</div>
 
-			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
+			<div className="flex items-center gap-x-2 px-4 text-sm text-muted-foreground">
 				<Button variant="outline" asChild size="icon">
 					<Link to="prev" prefetch="intent">
 						<span className="sr-only"> Previous </span>
