@@ -1,8 +1,19 @@
-import { Link } from '@remix-run/react'
+import { Link, useNavigate } from '@remix-run/react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { Button } from '#app/components/ui/button.tsx'
 import { Icon } from '#app/components/ui/icon'
 
 export function IssueBreadcrumbs({ current }: { current: string }) {
+	const navigate = useNavigate()
+
+	useHotkeys('j', () => {
+		navigate('prev')
+	})
+
+	useHotkeys('k', () => {
+		navigate('next')
+	})
+
 	return (
 		<div className="flex items-center justify-between border-b py-2">
 			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
