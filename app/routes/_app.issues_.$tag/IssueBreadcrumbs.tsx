@@ -1,5 +1,6 @@
 import { Link } from '@remix-run/react'
 import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon'
 
 export function IssueBreadcrumbs({ current }: { current: string }) {
 	return (
@@ -10,20 +11,22 @@ export function IssueBreadcrumbs({ current }: { current: string }) {
 						All issues
 					</Link>
 				</Button>
-				<span className="">/</span>
+				<Icon name="caret-right" className="h-6 w-6" />
 				<span className="font-medium">{current}</span>
 			</div>
 
 			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
 				<Button variant="outline" asChild size="sm">
 					<Link to="prev" prefetch="intent">
-						Previous
+						<span className="sr-only"> Previous </span>
+						<Icon name="caret-up" className="h-6 w-6" />
 					</Link>
 				</Button>
 
 				<Button variant="outline" asChild size="sm">
 					<Link to="next" prefetch="intent">
-						Next
+						<span className="sr-only"> Next </span>
+						<Icon name="caret-down" className="h-6 w-6" />
 					</Link>
 				</Button>
 			</div>
