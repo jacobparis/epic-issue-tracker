@@ -1,7 +1,7 @@
 // http://localhost:3000/issues/EIT-1
 
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
-import { Form, useLoaderData } from '@remix-run/react'
+import { Form, Link, useLoaderData } from '@remix-run/react'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
@@ -47,6 +47,18 @@ export default function Issues() {
 
 	return (
 		<div className="mx-auto max-w-4xl p-4">
+			<div className="flex items-center gap-x-2 text-sm text-muted-foreground">
+				<Button variant="ghost" asChild size="sm" className="-mx-3">
+					<Link to="/issues" prefetch="intent">
+						All issues
+					</Link>
+				</Button>
+				<span className="">/</span>
+				<span className="font-medium">
+					{issue.project}-{String(issue.number).padStart(3, '0')}
+				</span>
+			</div>
+
 			<div className="mt-8">
 				<Form method="POST">
 					<Field
