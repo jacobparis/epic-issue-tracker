@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
+import { createToastHeaders } from '#app/utils/toast.server'
 import { IssuesTable } from './IssuesTable'
 
 export const meta: MetaFunction = () => [
@@ -32,6 +33,7 @@ export async function action({ request }: DataFunctionArgs) {
 		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
+	let newIssueId = 0
 	await prisma.$transaction(async tx => {
 		invariant(submission.value, 'submission.value should be defined')
 
@@ -47,10 +49,12 @@ export async function action({ request }: DataFunctionArgs) {
 			},
 		})
 
+		newIssueId = highestId ? highestId.number + 1 : 1
+
 		await tx.issue.create({
 			data: {
 				project: 'EIT',
-				number: highestId ? highestId.number + 1 : 1,
+				number: newIssueId,
 				title: submission.value.title,
 				description: submission.value.description,
 				status: 'todo',
@@ -61,13 +65,24 @@ export async function action({ request }: DataFunctionArgs) {
 		})
 	})
 
-	return json({
-		success: true,
-		submission: {
-			...submission,
-			payload: null,
+	return json(
+		{
+			success: true,
+			submission: {
+				...submission,
+				payload: null,
+			},
 		},
-	})
+		{
+			headers: await createToastHeaders({
+				description: `Created issue EIT-${String(newIssueId).padStart(
+					3,
+					'0',
+				)} `,
+				type: 'success',
+			}),
+		},
+	)
 }
 
 export async function loader({ request }: DataFunctionArgs) {
