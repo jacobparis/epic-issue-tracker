@@ -1,8 +1,10 @@
 // http://localhost:3000/issues/EIT-1
 
+import { parse } from '@conform-to/zod'
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
 import { Form, useLoaderData } from '@remix-run/react'
-import { Field, SelectField } from '#app/components/forms.tsx'
+import { z } from 'zod'
+import { SelectField } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { Input } from '#app/components/ui/input'
 import { SelectGroup, SelectItem } from '#app/components/ui/select'
@@ -16,6 +18,45 @@ export const meta: MetaFunction = ({ params }) => [
 		title: `${params.tag} Issue`,
 	},
 ]
+
+const EditIssueSchema = z.object({
+	status: z.string().optional(),
+	priority: z.string().optional(),
+	title: z.string().optional(),
+	description: z.string().optional(),
+})
+
+export async function action({ request, params }: DataFunctionArgs) {
+	const formData = await request.formData()
+	const submission = parse(formData, {
+		schema: EditIssueSchema,
+	})
+
+	if (!submission.value) {
+		return json({ status: 'error', submission } as const, { status: 400 })
+	}
+
+	const { project, number } = parseProjectAndNumber(params.tag)
+
+	await prisma.issue.update({
+		where: {
+			project_number: {
+				project,
+				number,
+			},
+		},
+		data: {
+			title: submission.value.title,
+			description: submission.value.description,
+			status: submission.value.status,
+			priority: submission.value.priority,
+		},
+	})
+
+	return json({
+		status: 'success',
+	})
+}
 
 export async function loader({ params }: DataFunctionArgs) {
 	const { project, number } = parseProjectAndNumber(params.tag)
