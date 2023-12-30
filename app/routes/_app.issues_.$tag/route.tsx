@@ -11,9 +11,9 @@ import { prisma } from '#app/utils/db.server.ts'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
 import { parseProjectAndNumber } from './parseProjectAndNumber'
 
-export const meta: MetaFunction = () => [
+export const meta: MetaFunction = ({ params }) => [
 	{
-		title: 'Issues',
+		title: `${params.tag} Issue`,
 	},
 ]
 
