@@ -1,10 +1,11 @@
 // http://localhost:3000/issues/EIT-1
 
-import { parse } from '@conform-to/zod'
+import { conform, useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
-import { Form, useLoaderData } from '@remix-run/react'
+import { Form, useActionData, useLoaderData } from '@remix-run/react'
 import { z } from 'zod'
-import { SelectField } from '#app/components/forms.tsx'
+import { ErrorList, SelectField } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { Input } from '#app/components/ui/input'
 import { SelectGroup, SelectItem } from '#app/components/ui/select'
@@ -22,7 +23,7 @@ export const meta: MetaFunction = ({ params }) => [
 const EditIssueSchema = z.object({
 	status: z.string().optional(),
 	priority: z.string().optional(),
-	title: z.string().optional(),
+	title: z.string({ required_error: 'An issue must have a title' }),
 	description: z.string().optional(),
 })
 
@@ -55,6 +56,7 @@ export async function action({ request, params }: DataFunctionArgs) {
 
 	return json({
 		status: 'success',
+		submission,
 	})
 }
 
@@ -64,7 +66,7 @@ export async function loader({ params }: DataFunctionArgs) {
 	const issue = await prisma.issue.findFirst({
 		where: {
 			project,
-			number: Number(number),
+			number,
 		},
 		select: {
 			id: true,
@@ -89,6 +91,24 @@ export async function loader({ params }: DataFunctionArgs) {
 
 export default function Issues() {
 	const { issue } = useLoaderData<typeof loader>()
+	const actionData = useActionData<typeof action>()
+
+	const [form, fields] = useForm({
+		id: 'edit-issue-form',
+		// Adds required, min, etc props to the fields based on the schema
+		constraint: getFieldsetConstraint(EditIssueSchema),
+		// Tells conform about any errors we've had
+		lastSubmission: actionData?.submission,
+		onValidate({ formData }) {
+			return parse(formData, { schema: EditIssueSchema })
+		},
+		defaultValue: {
+			title: issue.title,
+			description: issue.description ?? '',
+			status: issue.status ?? undefined,
+			priority: issue.priority ?? undefined,
+		},
+	})
 
 	return (
 		<div>
@@ -104,15 +124,16 @@ export default function Issues() {
 			</div>
 			<div className="mx-auto max-w-4xl p-4">
 				<div className="mt-8">
-					<Form method="POST" key={`${issue.project}-${issue.number}`}>
+					<Form
+						method="POST"
+						key={`${issue.project}-${issue.number}`}
+						{...form.props}
+					>
 						<div className="-mb-8 flex w-full gap-x-4">
 							<SelectField
 								className="max-w-[20ch] grow"
 								labelProps={{ children: 'Status' }}
-								inputProps={{
-									name: 'status',
-									defaultValue: issue.status ?? undefined,
-								}}
+								inputProps={conform.input(fields.status)}
 							>
 								<SelectGroup>
 									{['todo', 'in-progress', 'done'].map(value => (
@@ -126,10 +147,7 @@ export default function Issues() {
 							<SelectField
 								className="max-w-[20ch] grow"
 								labelProps={{ children: 'Priority' }}
-								inputProps={{
-									name: 'priority',
-									defaultValue: issue.priority ?? undefined,
-								}}
+								inputProps={conform.input(fields.priority)}
 							>
 								<SelectGroup>
 									{['low', 'medium', 'high'].map(value => (
@@ -147,18 +165,27 @@ export default function Issues() {
 								type="text"
 								className="border-none bg-transparent text-lg font-medium placeholder:text-gray-400"
 								placeholder="Issue title"
-								name="title"
-								required
-								defaultValue={issue.title}
+								{...conform.input(fields.title)}
 							/>
+							<div className="px-3">
+								<ErrorList
+									errors={fields.title.errors}
+									id={fields.title.errorId}
+								/>
+							</div>
 
 							<Textarea
-								name="description"
 								aria-label="Description"
 								placeholder="Add a description…"
 								className="mt-2 border-none bg-transparent placeholder:text-gray-400"
-								defaultValue={issue.description ?? ''}
+								{...conform.input(fields.description)}
 							/>
+							<div className="px-3">
+								<ErrorList
+									errors={fields.description.errors}
+									id={fields.description.errorId}
+								/>
+							</div>
 						</div>
 
 						<div className="mt-2 flex justify-end">
