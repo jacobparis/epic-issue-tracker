@@ -2,7 +2,12 @@
 
 import { conform, useForm } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
-import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
+import {
+	type MetaFunction,
+	type DataFunctionArgs,
+	json,
+	redirect,
+} from '@remix-run/node'
 import { Form, useActionData, useLoaderData } from '@remix-run/react'
 import { z } from 'zod'
 import { ErrorList, SelectField } from '#app/components/forms.tsx'
@@ -21,43 +26,70 @@ export const meta: MetaFunction = ({ params }) => [
 ]
 
 const EditIssueSchema = z.object({
+	intent: z.literal('edit-issue'),
 	status: z.string().optional(),
 	priority: z.string().optional(),
 	title: z.string({ required_error: 'An issue must have a title' }),
 	description: z.string().optional(),
 })
 
+const DeleteIssueSchema = z.object({
+	intent: z.literal('delete-issue'),
+})
+
 export async function action({ request, params }: DataFunctionArgs) {
 	const formData = await request.formData()
 	const submission = parse(formData, {
-		schema: EditIssueSchema,
+		schema: z.discriminatedUnion('intent', [
+			EditIssueSchema,
+			DeleteIssueSchema,
+		]),
 	})
 
 	if (!submission.value) {
 		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
-	const { project, number } = parseProjectAndNumber(params.tag)
+	if (submission.value.intent === 'edit-issue') {
+		const { project, number } = parseProjectAndNumber(params.tag)
 
-	await prisma.issue.update({
-		where: {
-			project_number: {
-				project,
-				number,
+		await prisma.issue.update({
+			where: {
+				project_number: {
+					project,
+					number,
+				},
 			},
-		},
-		data: {
-			title: submission.value.title,
-			description: submission.value.description,
-			status: submission.value.status,
-			priority: submission.value.priority,
-		},
-	})
+			data: {
+				title: submission.value.title,
+				description: submission.value.description,
+				status: submission.value.status,
+				priority: submission.value.priority,
+			},
+		})
 
-	return json({
-		status: 'success',
-		submission,
-	})
+		return json({
+			status: 'success',
+			submission,
+		})
+	}
+
+	if (submission.value.intent === 'delete-issue') {
+		const { project, number } = parseProjectAndNumber(params.tag)
+
+		await prisma.issue.delete({
+			where: {
+				project_number: {
+					project,
+					number,
+				},
+			},
+		})
+
+		return redirect('/issues')
+	}
+
+	throw new Response('Invalid intent', { status: 400 })
 }
 
 export async function loader({ params }: DataFunctionArgs) {
@@ -113,7 +145,7 @@ export default function Issues() {
 	return (
 		<div>
 			<div className="border-b bg-background py-2">
-				<div className="mx-auto max-w-4xl">
+				<div className="mx-auto max-w-6xl">
 					<IssueBreadcrumbs
 						current={`${issue.project}-${String(issue.number).padStart(
 							3,
@@ -122,75 +154,91 @@ export default function Issues() {
 					/>
 				</div>
 			</div>
-			<div className="mx-auto max-w-4xl p-4">
-				<div className="mt-8">
-					<Form
-						method="POST"
-						key={`${issue.project}-${issue.number}`}
-						{...form.props}
-					>
-						<div className="-mb-8 flex w-full gap-x-4">
-							<SelectField
-								className="max-w-[20ch] grow"
-								labelProps={{ children: 'Status' }}
-								inputProps={conform.input(fields.status)}
-							>
-								<SelectGroup>
-									{['todo', 'in-progress', 'done'].map(value => (
-										<SelectItem key={value} value={value}>
-											{value}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectField>
+			<div className="mx-auto flex max-w-6xl flex-wrap">
+				<div className="max-w-4xl grow basis-[40rem] p-4">
+					<div className="mt-8">
+						<Form
+							method="POST"
+							key={`${issue.project}-${issue.number}`}
+							{...form.props}
+						>
+							<input type="hidden" name="intent" value="edit-issue" />
 
-							<SelectField
-								className="max-w-[20ch] grow"
-								labelProps={{ children: 'Priority' }}
-								inputProps={conform.input(fields.priority)}
-							>
-								<SelectGroup>
-									{['low', 'medium', 'high'].map(value => (
-										<SelectItem key={value} value={value}>
-											{value}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectField>
-						</div>
+							<div className="-mb-8 flex w-full gap-x-4">
+								<SelectField
+									className="max-w-[20ch] grow"
+									labelProps={{ children: 'Status' }}
+									inputProps={conform.input(fields.status)}
+								>
+									<SelectGroup>
+										{['todo', 'in-progress', 'done'].map(value => (
+											<SelectItem key={value} value={value}>
+												{value}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectField>
 
-						<div className="mt-2 rounded-xl border bg-background px-2 py-2 shadow-sm">
-							<Input
-								aria-label="Title"
-								type="text"
-								className="border-none bg-transparent text-lg font-medium placeholder:text-gray-400"
-								placeholder="Issue title"
-								{...conform.input(fields.title)}
-							/>
-							<div className="px-3">
-								<ErrorList
-									errors={fields.title.errors}
-									id={fields.title.errorId}
-								/>
+								<SelectField
+									className="max-w-[20ch] grow"
+									labelProps={{ children: 'Priority' }}
+									inputProps={conform.input(fields.priority)}
+								>
+									<SelectGroup>
+										{['low', 'medium', 'high'].map(value => (
+											<SelectItem key={value} value={value}>
+												{value}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectField>
 							</div>
 
-							<Textarea
-								aria-label="Description"
-								placeholder="Add a description…"
-								className="mt-2 border-none bg-transparent placeholder:text-gray-400"
-								{...conform.input(fields.description)}
-							/>
-							<div className="px-3">
-								<ErrorList
-									errors={fields.description.errors}
-									id={fields.description.errorId}
+							<div className="mt-2 rounded-xl border bg-background px-2 py-2 shadow-sm">
+								<Input
+									aria-label="Title"
+									type="text"
+									className="border-none bg-transparent text-lg font-medium placeholder:text-gray-400"
+									placeholder="Issue title"
+									{...conform.input(fields.title)}
 								/>
-							</div>
-						</div>
+								<div className="px-3">
+									<ErrorList
+										errors={fields.title.errors}
+										id={fields.title.errorId}
+									/>
+								</div>
 
-						<div className="mt-2 flex justify-end">
-							<Button type="submit"> Save </Button>
-						</div>
+								<Textarea
+									aria-label="Description"
+									placeholder="Add a description…"
+									className="mt-2 border-none bg-transparent placeholder:text-gray-400"
+									{...conform.input(fields.description)}
+								/>
+								<div className="px-3">
+									<ErrorList
+										errors={fields.description.errors}
+										id={fields.description.errorId}
+									/>
+								</div>
+							</div>
+
+							<div className="mt-2 flex justify-end">
+								<Button type="submit"> Save </Button>
+							</div>
+						</Form>
+					</div>
+				</div>
+				<div className="flex-shrink-0 grow-0 basis-20 p-4">
+					<Form method="POST" className="flex justify-end">
+						<input type="hidden" name="intent" value="delete-issue" />
+						<Button
+							type="submit"
+							className="mt-2 whitespace-nowrap"
+							variant="outline"
+						>
+							Delete issue
+						</Button>
 					</Form>
 				</div>
 			</div>
