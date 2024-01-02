@@ -128,6 +128,7 @@ export default function Issues() {
 	)
 
 	const deletedIssueTags = fetchers
+		.filter(fetcher => fetcher.data?.status !== 'error')
 		.map(fetcher => {
 			const [intent, key] = fetcher.key.split('@')
 			return { intent, key }

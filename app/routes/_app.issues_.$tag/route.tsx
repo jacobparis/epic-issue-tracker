@@ -86,14 +86,30 @@ export async function action({ request, params }: DataFunctionArgs) {
 
 		const { project, number } = parseProjectAndNumber(params.tag)
 
-		await prisma.issue.delete({
-			where: {
-				project_number: {
-					project,
-					number,
+		try {
+			await prisma.issue.delete({
+				where: {
+					project_number: {
+						project,
+						number,
+					},
 				},
-			},
-		})
+			})
+		} catch (error) {
+			console.error(error)
+			return json(
+				{
+					status: 'error',
+					submission,
+				},
+				{
+					headers: await createToastHeaders({
+						type: 'error',
+						description: 'Issue could not be deleted',
+					}),
+				},
+			)
+		}
 
 		return redirectWithToast('/issues', {
 			type: 'success',
