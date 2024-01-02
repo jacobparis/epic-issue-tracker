@@ -16,7 +16,7 @@ import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
-import { wait } from '#app/utils/misc.js'
+import { wait } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
 import { IssuesTable } from './IssuesTable'
 
