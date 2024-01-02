@@ -27,6 +27,13 @@ export const columns: ColumnDef<IssueRow>[] = [
 		accessorKey: 'number',
 		header: '#',
 		cell({ row }) {
+			if (!row.original.number)
+				return (
+					<span className="min-w-[4rem]">
+						<span className="sr-only">Creating…</span>
+					</span>
+				)
+
 			const idString = String(row.original.number).padStart(3, '0')
 
 			return (
@@ -125,6 +132,9 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 									<TableCell
 										key={cell.id}
 										onClick={event => {
+											// Don't navigate on pending issues
+											if (!row.original.number) return
+
 											navigate(
 												`/issues/${row.original.project}-${row.original.number}`,
 											)

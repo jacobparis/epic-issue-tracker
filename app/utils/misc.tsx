@@ -292,3 +292,6 @@ export async function downloadFile(url: string, retries: number = 0) {
 		return downloadFile(url, retries + 1)
 	}
 }
+export function wait(ms: number) {
+	return new Promise(resolve => setTimeout(resolve, ms))
+}
