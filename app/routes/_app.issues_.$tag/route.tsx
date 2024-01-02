@@ -8,7 +8,12 @@ import {
 	json,
 	redirect,
 } from '@remix-run/node'
-import { Form, useActionData, useLoaderData } from '@remix-run/react'
+import {
+	Form,
+	useActionData,
+	useLoaderData,
+	useNavigate,
+} from '@remix-run/react'
 import { z } from 'zod'
 import { ErrorList, SelectField } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
@@ -16,6 +21,8 @@ import { Input } from '#app/components/ui/input'
 import { SelectGroup, SelectItem } from '#app/components/ui/select'
 import { Textarea } from '#app/components/ui/textarea'
 import { prisma } from '#app/utils/db.server.ts'
+import { wait } from '#app/utils/misc'
+import { createToastHeaders, redirectWithToast } from '#app/utils/toast.server'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
 import { parseProjectAndNumber } from './parseProjectAndNumber'
 
@@ -75,6 +82,8 @@ export async function action({ request, params }: DataFunctionArgs) {
 	}
 
 	if (submission.value.intent === 'delete-issue') {
+		await wait(3000)
+
 		const { project, number } = parseProjectAndNumber(params.tag)
 
 		await prisma.issue.delete({
@@ -86,7 +95,10 @@ export async function action({ request, params }: DataFunctionArgs) {
 			},
 		})
 
-		return redirect('/issues')
+		return redirectWithToast('/issues', {
+			type: 'success',
+			description: 'Issue deleted',
+		})
 	}
 
 	throw new Response('Invalid intent', { status: 400 })
@@ -141,6 +153,8 @@ export default function Issues() {
 			priority: issue.priority ?? undefined,
 		},
 	})
+
+	const navigate = useNavigate()
 
 	return (
 		<div>
@@ -230,7 +244,17 @@ export default function Issues() {
 					</div>
 				</div>
 				<div className="flex-shrink-0 grow-0 basis-20 p-4">
-					<Form method="POST" className="flex justify-end">
+					<Form
+						method="POST"
+						className="flex justify-end"
+						navigate={false}
+						fetcherKey={`delete-issue@${issue.project}-${issue.number}`}
+						onSubmit={() => {
+							navigate(`/issues`, {
+								replace: true,
+							})
+						}}
+					>
 						<input type="hidden" name="intent" value="delete-issue" />
 						<Button
 							type="submit"

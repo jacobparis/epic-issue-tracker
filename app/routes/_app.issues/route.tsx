@@ -18,6 +18,7 @@ import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
 import { wait } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
+import { parseProjectAndNumber } from '../_app.issues_.$tag/parseProjectAndNumber'
 import { IssuesTable } from './IssuesTable'
 
 export const meta: MetaFunction = () => [
@@ -122,24 +123,38 @@ export default function Issues() {
 
 	const submit = useSubmit()
 	const fetchers = useFetchers()
-
 	const pendingIssueFetchers = fetchers.filter(
 		fetcher => fetcher.formData?.get('intent') === 'create-issue-form',
 	)
 
+	const deletedIssueTags = fetchers
+		.map(fetcher => {
+			const [intent, key] = fetcher.key.split('@')
+			return { intent, key }
+		})
+		.filter(({ intent }) => intent === 'delete-issue')
+		.map(({ key }) => parseProjectAndNumber(key))
+
 	const memoizedIssues = useMemo(() => {
-		return issues.concat(
-			...pendingIssueFetchers.map(fetcher => ({
-				id: fetcher.key,
-				project: 'EIT',
-				number: 0,
-				title: String(fetcher.formData?.get('title')),
-				status: 'todo',
-				priority: 'medium',
-				createdAt: new Date().toString(),
-			})),
-		)
-	}, [issues, pendingIssueFetchers])
+		return issues
+			.concat(
+				...pendingIssueFetchers.map(fetcher => ({
+					id: fetcher.key,
+					project: 'EIT',
+					number: 0,
+					title: String(fetcher.formData?.get('title')),
+					status: 'todo',
+					priority: 'medium',
+					createdAt: new Date().toString(),
+				})),
+			)
+			.filter(issue => {
+				return !deletedIssueTags.some(
+					({ project, number }) =>
+						issue.project === project && issue.number === number,
+				)
+			})
+	}, [issues, pendingIssueFetchers, deletedIssueTags])
 
 	const [form, fields] = useForm({
 		id: 'create-issue-form',
