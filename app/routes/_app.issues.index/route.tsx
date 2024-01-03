@@ -18,7 +18,7 @@ import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
 import { wait } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
-import { parseProjectAndNumber } from '../_app.issues_.$tag/parseProjectAndNumber'
+import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { IssuesTable } from './IssuesTable'
 
 export const meta: MetaFunction = () => [

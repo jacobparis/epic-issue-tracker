@@ -1,6 +1,6 @@
 import { redirect, type LoaderFunctionArgs } from '@remix-run/node'
 import { prisma } from '#app/utils/db.server.ts'
-import { parseProjectAndNumber } from './_app.issues_.$tag/parseProjectAndNumber'
+import { parseProjectAndNumber } from './_app.issues.$tag/parseProjectAndNumber'
 
 export async function loader({ params }: LoaderFunctionArgs) {
 	const { project, number } = parseProjectAndNumber(params.tag)
