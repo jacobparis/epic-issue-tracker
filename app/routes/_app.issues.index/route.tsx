@@ -3,7 +3,12 @@
 import { conform, useForm } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import { invariant } from '@epic-web/invariant'
-import { type MetaFunction, type DataFunctionArgs, json } from '@remix-run/node'
+import {
+	type MetaFunction,
+	type ActionFunctionArgs,
+	json,
+	type LoaderFunctionArgs,
+} from '@remix-run/node'
 import {
 	Form,
 	useActionData,
@@ -32,7 +37,7 @@ const CreateIssueSchema = z.object({
 	description: z.string().optional(),
 })
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData()
 	const submission = parse(formData, {
 		schema: CreateIssueSchema,
@@ -96,7 +101,7 @@ export async function action({ request }: DataFunctionArgs) {
 	)
 }
 
-export async function loader({ request }: DataFunctionArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const issues = await prisma.issue.findMany({
 		orderBy: {
 			createdAt: 'asc',

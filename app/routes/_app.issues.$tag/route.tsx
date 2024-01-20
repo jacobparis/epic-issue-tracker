@@ -4,9 +4,9 @@ import { conform, useForm } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import {
 	type MetaFunction,
-	type DataFunctionArgs,
+	type ActionFunctionArgs,
 	json,
-	redirect,
+	LoaderFunctionArgs,
 } from '@remix-run/node'
 import {
 	Form,
@@ -44,7 +44,7 @@ const DeleteIssueSchema = z.object({
 	intent: z.literal('delete-issue'),
 })
 
-export async function action({ request, params }: DataFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
 	const formData = await request.formData()
 	const submission = parse(formData, {
 		schema: z.discriminatedUnion('intent', [
@@ -120,7 +120,7 @@ export async function action({ request, params }: DataFunctionArgs) {
 	throw new Response('Invalid intent', { status: 400 })
 }
 
-export async function loader({ params }: DataFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
 	const { project, number } = parseProjectAndNumber(params.tag)
 
 	const issue = await prisma.issue.findFirst({
