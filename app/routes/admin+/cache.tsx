@@ -30,6 +30,7 @@ import {
 } from '#app/utils/litefs.server.ts'
 import { useDebounce, useDoubleCheck } from '#app/utils/misc.tsx'
 import { requireUserWithRole } from '#app/utils/permissions.ts'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.js'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
@@ -235,8 +236,14 @@ function CacheKeyRow({
 	)
 }
 
-export function ErrorBoundary({ error }: { error: Error }) {
-	console.error(error)
-
-	return <div>An unexpected error occurred: {error.message}</div>
+export function ErrorBoundary() {
+	return (
+		<GeneralErrorBoundary
+			statusHandlers={{
+				403: ({ error }) => (
+					<p>You are not allowed to do that: {error?.data.message}</p>
+				),
+			}}
+		/>
+	)
 }
