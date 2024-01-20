@@ -55,7 +55,7 @@ export function SearchBar({
 					className="flex w-full items-center justify-center"
 					size="sm"
 				>
-					<Icon name="magnifying-glass" size="sm" />
+					<Icon name="magnifying-glass" size="md" />
 					<span className="sr-only">Search</span>
 				</StatusButton>
 			</div>
