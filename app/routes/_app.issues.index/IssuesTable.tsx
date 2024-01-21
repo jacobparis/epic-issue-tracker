@@ -159,7 +159,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map(headerGroup => (
-						<TableRow key={headerGroup.id}>
+						<TableRow key={headerGroup.id} className="sr-only">
 							{headerGroup.headers.map(header => {
 								return (
 									<TableHead key={header.id}>
