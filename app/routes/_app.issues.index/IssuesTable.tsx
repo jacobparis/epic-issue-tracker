@@ -8,6 +8,8 @@ import {
 	getCoreRowModel,
 	flexRender,
 } from '@tanstack/react-table'
+import { useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { Checkbox } from '#app/components/ui/checkbox'
 import {
 	Table,
@@ -95,16 +97,65 @@ export const columns: ColumnDef<IssueRow>[] = [
 
 export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 	const navigate = useNavigate()
+	const [rowSelection, setRowSelection] = useState({})
 
 	const table = useReactTable({
 		data: issues,
 		columns,
+		state: {
+			rowSelection,
+		},
+		enableRowSelection: true,
+		onRowSelectionChange: setRowSelection,
 		getCoreRowModel: getCoreRowModel(),
 		getRowId: row => `${row.project}-${row.id}`,
 	})
 
+	const isAllSelected = Object.keys(rowSelection).length === issues.length
+
+	const selectAll = () => {
+		table.setRowSelection(existingSelection => {
+			const selection = { ...existingSelection }
+
+			for (const issue of issues) {
+				selection[`${issue.project}-${issue.id}`] = true
+			}
+
+			return selection
+		})
+	}
+
+	useHotkeys('meta+a', event => {
+		event.preventDefault()
+
+		selectAll()
+	})
+
+	useHotkeys('meta+shift+a', event => {
+		event.preventDefault()
+
+		table.resetRowSelection()
+	})
+
 	return (
 		<div>
+			<div className="flex items-center gap-x-4 p-2">
+				<span className="inline-flex h-8 items-center justify-center gap-x-2 text-sm tabular-nums text-gray-600">
+					<Checkbox
+						checked={isAllSelected}
+						onCheckedChange={() => {
+							if (isAllSelected) {
+								table.resetRowSelection()
+								return
+							}
+
+							selectAll()
+						}}
+						className="mr-2"
+					/>
+					{`${Object.keys(rowSelection).length} selected`}
+				</span>
+			</div>
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map(headerGroup => (
