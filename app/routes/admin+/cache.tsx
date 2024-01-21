@@ -1,10 +1,10 @@
 import { invariantResponse } from '@epic-web/invariant'
 import { type SEOHandle } from '@nasa-gcn/remix-seo'
 import {
-	ActionFunctionArgs,
 	json,
 	redirect,
 	type LoaderFunctionArgs,
+	type ActionFunctionArgs,
 } from '@remix-run/node'
 import {
 	Form,
@@ -14,6 +14,7 @@ import {
 	useSearchParams,
 	useSubmit,
 } from '@remix-run/react'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
 import { Field } from '#app/components/forms.tsx'
 import { Spacer } from '#app/components/spacer.tsx'
 import { Button } from '#app/components/ui/button.tsx'
@@ -30,7 +31,6 @@ import {
 } from '#app/utils/litefs.server.ts'
 import { useDebounce, useDoubleCheck } from '#app/utils/misc.tsx'
 import { requireUserWithRole } from '#app/utils/permissions.ts'
-import { GeneralErrorBoundary } from '#app/components/error-boundary.js'
 
 export const handle: SEOHandle = {
 	getSitemapEntries: () => null,
