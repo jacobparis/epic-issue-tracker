@@ -8,6 +8,7 @@ import {
 	getCoreRowModel,
 	flexRender,
 } from '@tanstack/react-table'
+import { Checkbox } from '#app/components/ui/checkbox'
 import {
 	Table,
 	TableBody,
@@ -23,6 +24,19 @@ type IssueRow = Pick<
 >
 
 export const columns: ColumnDef<IssueRow>[] = [
+	{
+		id: 'select',
+		cell: ({ row }) => (
+			<div className="mr-2">
+				<Checkbox
+					checked={row.getIsSelected()}
+					onCheckedChange={value => row.toggleSelected(Boolean(value))}
+					aria-label="Select row"
+					className="translate-y-[2px]"
+				/>
+			</div>
+		),
+	},
 	{
 		accessorKey: 'number',
 		header: '#',
@@ -86,6 +100,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		data: issues,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
+		getRowId: row => `${row.project}-${row.id}`,
 	})
 
 	return (
@@ -134,6 +149,17 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 										onClick={event => {
 											// Don't navigate on pending issues
 											if (!row.original.number) return
+
+											// Don't navigate if this is a checkbox
+											if (cell.column.id === 'select') return
+
+											if (event.metaKey) {
+												row.toggleSelected()
+												return
+											}
+
+											// Don't navigate if other checkboxes are clicked
+											if (table.getIsSomeRowsSelected()) return
 
 											navigate(
 												`/issues/${row.original.project}-${row.original.number}`,
