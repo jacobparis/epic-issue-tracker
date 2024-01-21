@@ -6,17 +6,21 @@ import {
 	type MetaFunction,
 	type ActionFunctionArgs,
 	json,
-	LoaderFunctionArgs,
+	type LoaderFunctionArgs,
 } from '@remix-run/node'
 import {
 	Form,
+	Link,
 	useActionData,
 	useLoaderData,
+	useLocation,
 	useNavigate,
+	useParams,
 } from '@remix-run/react'
 import { z } from 'zod'
 import { ErrorList, SelectField } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon'
 import { Input } from '#app/components/ui/input'
 import { SelectGroup, SelectItem } from '#app/components/ui/select'
 import { Textarea } from '#app/components/ui/textarea'
@@ -280,6 +284,35 @@ export default function Issues() {
 							Delete issue
 						</Button>
 					</Form>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+export function ErrorBoundary() {
+	const location = useLocation()
+	const { tag } = useParams()
+	return (
+		<div className="flex flex-col gap-6">
+			{tag ? (
+				<div className="border-b bg-background py-2">
+					<div className="mx-auto max-w-6xl">
+						<IssueBreadcrumbs current={tag.padStart(3, '0')} />
+					</div>
+				</div>
+			) : null}
+			<div className="container flex items-center justify-center p-20 text-h2">
+				<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-3">
+						<h1>We can't find this page:</h1>
+						<pre className="whitespace-pre-wrap break-all text-body-lg">
+							{location.pathname}
+						</pre>
+					</div>
+					<Link to="/" className="text-body-md underline">
+						<Icon name="arrow-left">Back to home</Icon>
+					</Link>
 				</div>
 			</div>
 		</div>
