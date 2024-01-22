@@ -108,7 +108,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		enableRowSelection: true,
 		onRowSelectionChange: setRowSelection,
 		getCoreRowModel: getCoreRowModel(),
-		getRowId: row => `${row.project}-${row.id}`,
+		getRowId: row => row.id,
 	})
 
 	const isAllSelected = Object.keys(rowSelection).length === issues.length
@@ -118,7 +118,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 			const selection = { ...existingSelection }
 
 			for (const issue of issues) {
-				selection[`${issue.project}-${issue.id}`] = true
+				selection[issue.id] = true
 			}
 
 			return selection
