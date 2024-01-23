@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSpinDelay } from 'spin-delay'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { extendedTheme } from './extended-theme.ts'
+import { type Submission } from '@conform-to/react'
+import { parse } from '@conform-to/zod'
+import { z } from 'zod'
+import { Submission } from '@conform-to/react'
+import { parse } from '@conform-to/zod'
 
 export function getUserImgSrc(imageId?: string | null) {
 	return imageId ? `/resources/user-images/${imageId}` : '/img/user.png'
@@ -289,4 +294,39 @@ export async function downloadFile(url: string, retries: number = 0) {
 }
 export function wait(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms))
+}
+export async function parseRequest<T>(
+	request: Request,
+	{ schema }: { schema: z.ZodType<T> },
+) {
+	const type = request.headers.get('content-type')
+
+	if (type === 'application/json') {
+		const payload = (await request.json()) as Record<string, unknown>
+		const value = await schema.safeParseAsync(payload)
+
+		if (value.success) {
+			return {
+				intent: '',
+				payload,
+				error: {},
+				value: value.data,
+			} as Submission<T>
+		} else {
+			return {
+				intent: '',
+				payload,
+				error: value.error.errors.reduce(
+					(result, e) => {
+						result[String(e.path)] = [e.message]
+						return result
+					},
+					{} as Record<string, Array<string>>,
+				),
+			} as Submission<T>
+		}
+	}
+
+	const formData = await request.formData()
+	return parse(formData, { schema })
 }
