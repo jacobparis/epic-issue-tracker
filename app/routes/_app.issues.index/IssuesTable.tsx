@@ -1,7 +1,7 @@
 import { type Issue } from '@prisma/client'
 import { type SerializeFrom } from '@remix-run/node'
 
-import { Link, useNavigate } from '@remix-run/react'
+import { Link, useFetcher, useNavigate } from '@remix-run/react'
 import {
 	useReactTable,
 	type ColumnDef,
@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { Button } from '#app/components/ui/button'
 import { Checkbox } from '#app/components/ui/checkbox'
 import {
 	Table,
@@ -137,6 +138,10 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		table.resetRowSelection()
 	})
 
+	const bulkDeleteFetcher = useFetcher({
+		key: 'delete-issues',
+	})
+
 	return (
 		<div>
 			<div className="flex items-center gap-x-4 p-2">
@@ -155,6 +160,31 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 					/>
 					{`${Object.keys(rowSelection).length} selected`}
 				</span>
+
+				{Object.keys(rowSelection).length > 0 ? (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							const issueIds = Object.keys(rowSelection)
+
+							bulkDeleteFetcher.submit(
+								{
+									intent: 'delete-issues',
+									issueIds,
+								},
+								{
+									method: 'POST',
+									action: '/issues',
+									encType: 'application/json',
+									navigate: false,
+								},
+							)
+						}}
+					>
+						{`Delete ${Object.keys(rowSelection).length} items`}
+					</Button>
+				) : null}
 			</div>
 			<Table>
 				<TableHeader>

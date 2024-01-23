@@ -2,7 +2,6 @@
 
 import { conform, useForm } from '@conform-to/react'
 import { getFieldsetConstraint, parse } from '@conform-to/zod'
-import { invariant } from '@epic-web/invariant'
 import {
 	type MetaFunction,
 	type ActionFunctionArgs,
@@ -21,7 +20,7 @@ import { z } from 'zod'
 import { Field } from '#app/components/forms.tsx'
 import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
-import { wait } from '#app/utils/misc'
+import { wait, parseRequest } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
 import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { IssuesTable } from './IssuesTable'
@@ -33,14 +32,22 @@ export const meta: MetaFunction = () => [
 ]
 
 const CreateIssueSchema = z.object({
+	intent: z.literal('create-issue'),
 	title: z.string({ required_error: 'An issue must have a title' }).min(1),
 	description: z.string().optional(),
 })
 
+const BulkDeleteIssueSchema = z.object({
+	intent: z.literal('delete-issues'),
+	issueIds: z.array(z.string()),
+})
+
 export async function action({ request }: ActionFunctionArgs) {
-	const formData = await request.formData()
-	const submission = parse(formData, {
-		schema: CreateIssueSchema,
+	const submission = await parseRequest(request, {
+		schema: z.discriminatedUnion('intent', [
+			CreateIssueSchema,
+			BulkDeleteIssueSchema,
+		]),
 	})
 
 	if (!submission.value) {
@@ -49,10 +56,53 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	await wait(3000)
 
+	if (submission.value.intent === 'delete-issues') {
+		await deleteIssues(submission.value)
+
+		return json({ success: true, submission })
+	}
+
+	if (submission.value.intent === 'create-issue') {
+		let newIssueId = await createIssue(submission.value)
+
+		return json(
+			{
+				success: true,
+				submission: {
+					...submission,
+					payload: null,
+				},
+			},
+			{
+				headers: await createToastHeaders({
+					description: `Created issue EIT-${String(newIssueId).padStart(
+						3,
+						'0',
+					)} `,
+					type: 'success',
+				}),
+			},
+		)
+	}
+}
+
+async function deleteIssues({ issueIds }: { issueIds: Array<string> }) {
+	// TODO: gracefully delete relations to issues
+	await prisma.issue.deleteMany({
+		where: {
+			id: {
+				in: issueIds,
+			},
+		},
+	})
+}
+
+async function createIssue(issue: {
+	title: string
+	description?: string | undefined
+}) {
 	let newIssueId = 0
 	await prisma.$transaction(async tx => {
-		invariant(submission.value, 'submission.value should be defined')
-
 		const highestId = await tx.issue.findFirst({
 			where: {
 				project: 'EIT',
@@ -71,8 +121,8 @@ export async function action({ request }: ActionFunctionArgs) {
 			data: {
 				project: 'EIT',
 				number: newIssueId,
-				title: submission.value.title,
-				description: submission.value.description,
+				title: issue.title,
+				description: issue.description,
 				status: 'todo',
 				priority: 'medium',
 				createdAt: new Date(),
@@ -80,25 +130,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			},
 		})
 	})
-
-	return json(
-		{
-			success: true,
-			submission: {
-				...submission,
-				payload: null,
-			},
-		},
-		{
-			headers: await createToastHeaders({
-				description: `Created issue EIT-${String(newIssueId).padStart(
-					3,
-					'0',
-				)} `,
-				type: 'success',
-			}),
-		},
-	)
+	return newIssueId
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -198,6 +230,8 @@ export default function Issues() {
 					<input type="hidden" name="intent" value={form.id} />
 
 					<div className="flex items-end gap-x-2">
+						<input type="hidden" name="intent" value="create-issue" />
+
 						<Field
 							labelProps={{ children: 'New issue' }}
 							inputProps={conform.input(fields.title)}
