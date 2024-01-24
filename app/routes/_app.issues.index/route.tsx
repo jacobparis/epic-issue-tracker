@@ -1,7 +1,7 @@
 // http://localhost:3000/issues
 
-import { conform, useForm } from '@conform-to/react'
-import { getFieldsetConstraint, parse } from '@conform-to/zod'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import {
 	type MetaFunction,
 	type ActionFunctionArgs,
@@ -50,8 +50,13 @@ export async function action({ request }: ActionFunctionArgs) {
 		]),
 	})
 
-	if (!submission.value) {
-		return json({ status: 'error', submission } as const, { status: 400 })
+	if (submission.status !== 'success') {
+		return json(
+			{ result: submission.reply() },
+			{
+				status: submission.status === 'error' ? 400 : 200,
+			},
+		)
 	}
 
 	await wait(3000)
@@ -59,7 +64,7 @@ export async function action({ request }: ActionFunctionArgs) {
 	if (submission.value.intent === 'delete-issues') {
 		await deleteIssues(submission.value)
 
-		return json({ success: true, submission })
+		return json({ result: submission.reply() })
 	}
 
 	if (submission.value.intent === 'create-issue') {
@@ -67,11 +72,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 		return json(
 			{
-				success: true,
-				submission: {
-					...submission,
-					payload: null,
-				},
+				result: submission.reply({ resetForm: true }),
 			},
 			{
 				headers: await createToastHeaders({
@@ -197,15 +198,15 @@ export default function Issues() {
 	const [form, fields] = useForm({
 		id: 'create-issue-form',
 		// Adds required, min, etc props to the fields based on the schema
-		constraint: getFieldsetConstraint(CreateIssueSchema),
+		constraint: getZodConstraint(CreateIssueSchema),
 		// Tells conform about any errors we've had
-		lastSubmission: actionData?.submission,
+		lastResult: actionData?.result,
 		onValidate({ formData }) {
-			return parse(formData, { schema: CreateIssueSchema })
+			return parseWithZod(formData, { schema: CreateIssueSchema })
 		},
 		onSubmit(event) {
 			event.preventDefault()
-			const form = event.currentTarget
+			const form = event.currentTarget as HTMLFormElement
 
 			submit(form, {
 				navigate: false,
@@ -226,7 +227,7 @@ export default function Issues() {
 			<IssuesTable issues={memoizedIssues} />
 
 			<div className="mt-8">
-				<Form method="POST" {...form.props}>
+				<Form method="POST" {...getFormProps(form)}>
 					<input type="hidden" name="intent" value={form.id} />
 
 					<div className="flex items-end gap-x-2">
@@ -234,7 +235,7 @@ export default function Issues() {
 
 						<Field
 							labelProps={{ children: 'New issue' }}
-							inputProps={conform.input(fields.title)}
+							inputProps={getInputProps(fields.title, { type: 'text' })}
 							errors={fields.title.errors}
 							className="grow"
 						/>

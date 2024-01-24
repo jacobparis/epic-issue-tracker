@@ -1,7 +1,12 @@
 // http://localhost:3000/issues/EIT-1
 
-import { conform, useForm } from '@conform-to/react'
-import { getFieldsetConstraint, parse } from '@conform-to/zod'
+import {
+	getFormProps,
+	getInputProps,
+	getSelectProps,
+	useForm,
+} from '@conform-to/react'
+import { getZodConstraint, parseWithZod } from '@conform-to/zod'
 import {
 	type MetaFunction,
 	type ActionFunctionArgs,
@@ -50,15 +55,20 @@ const DeleteIssueSchema = z.object({
 
 export async function action({ request, params }: ActionFunctionArgs) {
 	const formData = await request.formData()
-	const submission = parse(formData, {
+	const submission = parseWithZod(formData, {
 		schema: z.discriminatedUnion('intent', [
 			EditIssueSchema,
 			DeleteIssueSchema,
 		]),
 	})
 
-	if (!submission.value) {
-		return json({ status: 'error', submission } as const, { status: 400 })
+	if (submission.status !== 'success') {
+		return json(
+			{ result: submission.reply() },
+			{
+				status: submission.status === 'error' ? 400 : 200,
+			},
+		)
 	}
 
 	if (submission.value.intent === 'edit-issue') {
@@ -79,10 +89,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 			},
 		})
 
-		return json({
-			status: 'success',
-			submission,
-		})
+		return json({ result: submission.reply() })
 	}
 
 	if (submission.value.intent === 'delete-issue') {
@@ -102,10 +109,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		} catch (error) {
 			console.error(error)
 			return json(
-				{
-					status: 'error',
-					submission,
-				},
+				{ result: submission.reply() },
 				{
 					headers: await createToastHeaders({
 						type: 'error',
@@ -160,11 +164,11 @@ export default function Issues() {
 	const [form, fields] = useForm({
 		id: 'edit-issue-form',
 		// Adds required, min, etc props to the fields based on the schema
-		constraint: getFieldsetConstraint(EditIssueSchema),
+		constraint: getZodConstraint(EditIssueSchema),
 		// Tells conform about any errors we've had
-		lastSubmission: actionData?.submission,
+		lastResult: actionData?.result,
 		onValidate({ formData }) {
-			return parse(formData, { schema: EditIssueSchema })
+			return parseWithZod(formData, { schema: EditIssueSchema })
 		},
 		defaultValue: {
 			title: issue.title,
@@ -194,7 +198,7 @@ export default function Issues() {
 						<Form
 							method="POST"
 							key={`${issue.project}-${issue.number}`}
-							{...form.props}
+							{...getFormProps(form)}
 						>
 							<input type="hidden" name="intent" value="edit-issue" />
 
@@ -202,7 +206,10 @@ export default function Issues() {
 								<SelectField
 									className="max-w-[20ch] grow"
 									labelProps={{ children: 'Status' }}
-									inputProps={conform.input(fields.status)}
+									inputProps={{
+										...getSelectProps(fields.status),
+										defaultValue: issue.status ?? undefined,
+									}}
 								>
 									<SelectGroup>
 										{['todo', 'in-progress', 'done'].map(value => (
@@ -216,7 +223,10 @@ export default function Issues() {
 								<SelectField
 									className="max-w-[20ch] grow"
 									labelProps={{ children: 'Priority' }}
-									inputProps={conform.input(fields.priority)}
+									inputProps={{
+										...getSelectProps(fields.priority),
+										defaultValue: issue.priority ?? undefined,
+									}}
 								>
 									<SelectGroup>
 										{['low', 'medium', 'high'].map(value => (
@@ -231,10 +241,9 @@ export default function Issues() {
 							<div className="mt-2 rounded-xl border bg-background px-2 py-2 shadow-sm">
 								<Input
 									aria-label="Title"
-									type="text"
 									className="border-none bg-transparent text-lg font-medium placeholder:text-gray-400"
 									placeholder="Issue title"
-									{...conform.input(fields.title)}
+									{...getInputProps(fields.title, { type: 'text' })}
 								/>
 								<div className="px-3">
 									<ErrorList
@@ -247,7 +256,9 @@ export default function Issues() {
 									aria-label="Description"
 									placeholder="Add a description…"
 									className="mt-2 border-none bg-transparent placeholder:text-gray-400"
-									{...conform.input(fields.description)}
+									{...getInputProps(fields.description, {
+										type: 'text',
+									})}
 								/>
 								<div className="px-3">
 									<ErrorList

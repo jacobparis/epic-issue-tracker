@@ -1,5 +1,5 @@
 import { type Submission } from '@conform-to/react'
-import { parse } from '@conform-to/zod'
+import { parse, parseWithZod } from '@conform-to/zod'
 import { useFormAction, useNavigation } from '@remix-run/react'
 import { clsx, type ClassValue } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -305,14 +305,18 @@ export async function parseRequest<T>(
 
 		if (value.success) {
 			return {
-				intent: '',
+				status: 'success',
 				payload,
-				error: {},
 				value: value.data,
-			} as Submission<T>
+				reply: () => ({
+					status: 'success',
+					initialValue: payload,
+					value: value.data,
+				}),
+			} satisfies Submission<T>
 		} else {
 			return {
-				intent: '',
+				status: 'error',
 				payload,
 				error: value.error.errors.reduce(
 					(result, e) => {
@@ -321,10 +325,21 @@ export async function parseRequest<T>(
 					},
 					{} as Record<string, Array<string>>,
 				),
+				reply: () => ({
+					status: 'error',
+					initialValue: payload,
+					error: value.error.errors.reduce(
+						(result, e) => {
+							result[String(e.path)] = [e.message]
+							return result
+						},
+						{} as Record<string, Array<string>>,
+					),
+				}),
 			} as Submission<T>
 		}
 	}
 
 	const formData = await request.formData()
-	return parse(formData, { schema })
+	return parseWithZod(formData, { schema })
 }
