@@ -290,9 +290,11 @@ export async function downloadFile(url: string, retries: number = 0) {
 		return downloadFile(url, retries + 1)
 	}
 }
+
 export function wait(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms))
 }
+
 export async function parseRequest<T>(
 	request: Request,
 	{ schema }: { schema: z.ZodType<T> },
@@ -342,4 +344,27 @@ export async function parseRequest<T>(
 
 	const formData = await request.formData()
 	return parseWithZod(formData, { schema })
+}
+
+// shallow compare primitive elements in array
+export function useShallowArrayMemo<T>(array: Array<T>) {
+	const prevArray = useRef<Array<T>>([])
+
+	if (prevArray.current === array) {
+		return array
+	}
+
+	if (array.length === prevArray.current.length) {
+		const hasChanged = array.some((item, index) => {
+			return item !== prevArray.current[index]
+		})
+
+		if (!hasChanged) {
+			return prevArray.current
+		}
+	}
+
+	prevArray.current = array
+
+	return array
 }

@@ -1,14 +1,14 @@
 import { type Issue } from '@prisma/client'
 import { type SerializeFrom } from '@remix-run/node'
 
-import { Link, useFetcher, useNavigate } from '@remix-run/react'
+import { Link, useNavigate } from '@remix-run/react'
 import {
 	useReactTable,
 	type ColumnDef,
 	getCoreRowModel,
 	flexRender,
 } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { Button } from '#app/components/ui/button'
 import { Checkbox } from '#app/components/ui/checkbox'
@@ -101,10 +101,14 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 	const navigate = useNavigate()
 	const [rowSelection, setRowSelection] = useState({})
 
-	const submitDeletedIssues = useBulkDeleteIssues()
+	const [deletedIssueIds, deleteIssues] = useBulkDeleteIssues()
+
+	const memoizedIssues = useMemo(() => {
+		return issues.filter(issue => !deletedIssueIds.includes(issue.id))
+	}, [deletedIssueIds, issues])
 
 	const table = useReactTable({
-		data: issues,
+		data: memoizedIssues,
 		columns,
 		state: {
 			rowSelection,
@@ -167,9 +171,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 						onClick={() => {
 							const issueIds = Object.keys(rowSelection)
 
-							submitDeletedIssues({
-									issueIds,
-							})
+							deleteIssues({ issueIds })
 
 							table.resetRowSelection()
 						}}
