@@ -24,6 +24,7 @@ import { wait, parseRequest } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
 import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { IssuesTable } from './IssuesTable'
+import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
 
 export const meta: MetaFunction = () => [
 	{
@@ -37,16 +38,11 @@ const CreateIssueSchema = z.object({
 	description: z.string().optional(),
 })
 
-const BulkDeleteIssueSchema = z.object({
-	intent: z.literal('delete-issues'),
-	issueIds: z.array(z.string()),
-})
-
 export async function action({ request }: ActionFunctionArgs) {
 	const submission = await parseRequest(request, {
 		schema: z.discriminatedUnion('intent', [
 			CreateIssueSchema,
-			BulkDeleteIssueSchema,
+			BulkDeleteIssuesSchema,
 		]),
 	})
 

@@ -20,6 +20,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '#app/components/ui/table.tsx'
+import { useBulkDeleteIssues } from './useBulkDeleteIssues'
 
 type IssueRow = Pick<
 	SerializeFrom<Issue>,
@@ -100,6 +101,8 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 	const navigate = useNavigate()
 	const [rowSelection, setRowSelection] = useState({})
 
+	const submitDeletedIssues = useBulkDeleteIssues()
+
 	const table = useReactTable({
 		data: issues,
 		columns,
@@ -138,10 +141,6 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		table.resetRowSelection()
 	})
 
-	const bulkDeleteFetcher = useFetcher({
-		key: 'delete-issues',
-	})
-
 	return (
 		<div>
 			<div className="flex items-center gap-x-4 p-2">
@@ -168,18 +167,11 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 						onClick={() => {
 							const issueIds = Object.keys(rowSelection)
 
-							bulkDeleteFetcher.submit(
-								{
-									intent: 'delete-issues',
+							submitDeletedIssues({
 									issueIds,
-								},
-								{
-									method: 'POST',
-									action: '/issues',
-									encType: 'application/json',
-									navigate: false,
-								},
-							)
+							})
+
+							table.resetRowSelection()
 						}}
 					>
 						{`Delete ${Object.keys(rowSelection).length} items`}
