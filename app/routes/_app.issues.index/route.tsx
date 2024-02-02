@@ -158,7 +158,7 @@ export default function Issues() {
 	const submit = useSubmit()
 	const fetchers = useFetchers()
 	const pendingIssueFetchers = fetchers.filter(
-		fetcher => fetcher.formData?.get('intent') === 'create-issue-form',
+		fetcher => fetcher.formData?.get('intent') === 'create-issue',
 	)
 
 	const deletedIssueTags = fetchers
@@ -192,7 +192,7 @@ export default function Issues() {
 	}, [issues, pendingIssueFetchers, deletedIssueTags])
 
 	const [form, fields] = useForm({
-		id: 'create-issue-form',
+		id: 'create-issue',
 		// Adds required, min, etc props to the fields based on the schema
 		constraint: getZodConstraint(CreateIssueSchema),
 		// Tells conform about any errors we've had
@@ -227,8 +227,6 @@ export default function Issues() {
 					<input type="hidden" name="intent" value={form.id} />
 
 					<div className="flex items-end gap-x-2">
-						<input type="hidden" name="intent" value="create-issue" />
-
 						<Field
 							labelProps={{ children: 'New issue' }}
 							inputProps={getInputProps(fields.title, { type: 'text' })}
