@@ -119,7 +119,8 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		getRowId: row => row.id,
 	})
 
-	const isAllSelected = Object.keys(rowSelection).length === issues.length
+	const selectedIds = Object.keys(rowSelection)
+	const isAllSelected = selectedIds.length === issues.length
 
 	const selectAll = () => {
 		table.setRowSelection(existingSelection => {
@@ -161,22 +162,22 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 						}}
 						className="mr-2"
 					/>
-					{`${Object.keys(rowSelection).length} selected`}
+					{`${selectedIds.length} selected`}
 				</span>
 
-				{Object.keys(rowSelection).length > 0 ? (
+				{selectedIds.length > 0 ? (
 					<Button
 						variant="outline"
 						size="sm"
 						onClick={() => {
-							const issueIds = Object.keys(rowSelection)
-
-							deleteIssues({ issueIds })
+								deleteIssues({
+									issueIds: selectedIds,
+								})
 
 							table.resetRowSelection()
 						}}
 					>
-						{`Delete ${Object.keys(rowSelection).length} items`}
+							{`Delete ${selectedIds.length} items`}
 					</Button>
 				) : null}
 			</div>
