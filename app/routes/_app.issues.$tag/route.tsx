@@ -32,6 +32,7 @@ import { Textarea } from '#app/components/ui/textarea'
 import { prisma } from '#app/utils/db.server.ts'
 import { wait } from '#app/utils/misc'
 import { createToastHeaders, redirectWithToast } from '#app/utils/toast.server'
+import { useAppData } from '../_app'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
 import { parseProjectAndNumber } from './parseProjectAndNumber'
 
@@ -179,6 +180,7 @@ export default function Issues() {
 	})
 
 	const navigate = useNavigate()
+	const { tableSchema } = useAppData()
 
 	return (
 		<div>
@@ -212,7 +214,7 @@ export default function Issues() {
 									}}
 								>
 									<SelectGroup>
-										{['todo', 'in-progress', 'done'].map(value => (
+										{tableSchema.statuses.map(value => (
 											<SelectItem key={value} value={value}>
 												{value}
 											</SelectItem>
@@ -229,7 +231,7 @@ export default function Issues() {
 									}}
 								>
 									<SelectGroup>
-										{['low', 'medium', 'high'].map(value => (
+										{tableSchema.priorities.map(value => (
 											<SelectItem key={value} value={value}>
 												{value}
 											</SelectItem>

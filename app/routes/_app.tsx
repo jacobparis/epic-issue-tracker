@@ -1,5 +1,30 @@
-import { NavLink, Outlet } from '@remix-run/react'
+import { json, type LoaderFunctionArgs } from '@remix-run/node'
+import {
+	NavLink,
+	Outlet,
+	useRouteLoaderData,
+	type ShouldRevalidateFunction,
+} from '@remix-run/react'
 import clsx from 'clsx'
+import { getTableSchema } from '../schema.server'
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	return json({
+		tableSchema: await getTableSchema(),
+	})
+}
+
+export function useAppData() {
+	const data = useRouteLoaderData<typeof loader>('routes/_app')
+
+	if (data === undefined) {
+		throw new Error('useAppData must be used within the _app route')
+	}
+
+	return data
+}
+
+export const shouldRevalidate: ShouldRevalidateFunction = () => false
 
 export default function App() {
 	return (

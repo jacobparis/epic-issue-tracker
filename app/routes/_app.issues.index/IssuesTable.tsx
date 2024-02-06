@@ -28,6 +28,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '#app/components/ui/table.tsx'
+import { useAppData } from '../_app'
 import { useBulkDeleteIssues } from './useBulkDeleteIssues'
 import { useBulkEditIssues } from './useBulkEditIssues'
 
@@ -106,7 +107,11 @@ export const columns: ColumnDef<IssueRow>[] = [
 	},
 ]
 
+let runawayRenders = 100
 export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
+	if (runawayRenders-- <= 0) {
+		throw new Error('Runaway renders')
+	}
 	const navigate = useNavigate()
 	const [rowSelection, setRowSelection] = useState({})
 
@@ -171,6 +176,8 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 		table.resetRowSelection()
 	})
 
+	const { tableSchema } = useAppData()
+
 	return (
 		<div>
 			<div
@@ -222,7 +229,7 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 							</SelectTrigger>
 							<SelectContent>
 								<SelectGroup>
-									{['low', 'medium', 'high'].map(value => (
+									{tableSchema.priorities.map(value => (
 										<SelectItem key={value} value={value}>
 											{value}
 										</SelectItem>
