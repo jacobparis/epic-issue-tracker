@@ -25,6 +25,7 @@ import { createToastHeaders } from '#app/utils/toast.server'
 import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { IssuesTable } from './IssuesTable'
 import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
+import { BulkEditIssuesSchema } from './useBulkEditIssues'
 
 export const meta: MetaFunction = () => [
 	{
@@ -43,6 +44,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		schema: z.discriminatedUnion('intent', [
 			CreateIssueSchema,
 			BulkDeleteIssuesSchema,
+			BulkEditIssuesSchema,
 		]),
 	})
 
@@ -59,6 +61,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	if (submission.value.intent === 'delete-issues') {
 		await deleteIssues(submission.value)
+
+		return json({ result: submission.reply() })
+	}
+
+	if (submission.value.intent === 'edit-issues') {
+		await editIssues(submission.value)
 
 		return json({ result: submission.reply() })
 	}
@@ -91,6 +99,23 @@ async function deleteIssues({ issueIds }: { issueIds: Array<string> }) {
 				in: issueIds,
 			},
 		},
+	})
+}
+
+async function editIssues({
+	issueIds,
+	changeset,
+}: {
+	issueIds: Array<string>
+	changeset: { status?: string; priority?: string }
+}) {
+	await prisma.issue.updateMany({
+		where: {
+			id: {
+				in: issueIds,
+			},
+		},
+		data: changeset,
 	})
 }
 

@@ -90,7 +90,7 @@ export function SelectField({
 				{...inputProps}
 			/>
 			<Select id={id} {...inputProps}>
-				<SelectTrigger>
+				<SelectTrigger className="w-full">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>{children}</SelectContent>

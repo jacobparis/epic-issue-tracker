@@ -10,6 +10,9 @@ export default {
 	serverPlatform: 'node',
 	tailwind: true,
 	postcss: true,
+	future: {
+		v3_fetcherPersist: true,
+	},
 	watchPaths: ['./tailwind.config.ts'],
 	routes: async defineRoutes => {
 		return flatRoutes('routes', defineRoutes, {

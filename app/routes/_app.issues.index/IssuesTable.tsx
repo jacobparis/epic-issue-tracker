@@ -13,6 +13,14 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { Button } from '#app/components/ui/button'
 import { Checkbox } from '#app/components/ui/checkbox'
 import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '#app/components/ui/select'
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -21,6 +29,7 @@ import {
 	TableRow,
 } from '#app/components/ui/table.tsx'
 import { useBulkDeleteIssues } from './useBulkDeleteIssues'
+import { useBulkEditIssues } from './useBulkEditIssues'
 
 type IssueRow = Pick<
 	SerializeFrom<Issue>,
@@ -102,10 +111,26 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 	const [rowSelection, setRowSelection] = useState({})
 
 	const [deletedIssueIds, deleteIssues] = useBulkDeleteIssues()
+	const [editedIssues, editIssues] = useBulkEditIssues()
 
 	const memoizedIssues = useMemo(() => {
-		return issues.filter(issue => !deletedIssueIds.includes(issue.id))
-	}, [deletedIssueIds, issues])
+		return issues
+			.filter(issue => !deletedIssueIds.includes(issue.id))
+			.map(issue => {
+				const editedIssue = editedIssues.findLast(editedIssue =>
+					editedIssue.issueIds.includes(issue.id),
+				)
+
+				if (editedIssue) {
+					return {
+						...issue,
+						...editedIssue.changeset,
+					}
+				}
+
+				return issue
+			})
+	}, [deletedIssueIds, editedIssues, issues])
 
 	const table = useReactTable({
 		data: memoizedIssues,
@@ -148,7 +173,10 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 
 	return (
 		<div>
-			<div className="flex items-center gap-x-4 p-2">
+			<div
+				className="flex items-center gap-x-4 p-2"
+				key={selectedIds.join(',')}
+			>
 				<span className="inline-flex h-8 items-center justify-center gap-x-2 text-sm tabular-nums text-gray-600">
 					<Checkbox
 						checked={isAllSelected}
@@ -166,19 +194,43 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 				</span>
 
 				{selectedIds.length > 0 ? (
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => {
+					<>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
 								deleteIssues({
 									issueIds: selectedIds,
 								})
 
-							table.resetRowSelection()
-						}}
-					>
+								table.resetRowSelection()
+							}}
+						>
 							{`Delete ${selectedIds.length} items`}
-					</Button>
+						</Button>
+
+						<Select
+							onValueChange={value => {
+								editIssues({
+									issueIds: selectedIds,
+									changeset: { priority: value },
+								})
+							}}
+						>
+							<SelectTrigger aria-label="Priority">
+								<SelectValue placeholder="Priority" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{['low', 'medium', 'high'].map(value => (
+										<SelectItem key={value} value={value}>
+											{value}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</>
 				) : null}
 			</div>
 			<Table>
