@@ -33,16 +33,15 @@ export const meta: MetaFunction = () => [
 	},
 ]
 
-const CreateIssueSchema = z.object({
-	intent: z.literal('create-issue'),
+const CreateIssueInlineSchema = z.object({
+	intent: z.literal('create-issue-inline'),
 	title: z.string({ required_error: 'An issue must have a title' }).min(1),
-	description: z.string().optional(),
 })
 
 export async function action({ request }: ActionFunctionArgs) {
 	const submission = await parseRequest(request, {
 		schema: z.discriminatedUnion('intent', [
-			CreateIssueSchema,
+			CreateIssueInlineSchema,
 			BulkDeleteIssuesSchema,
 			BulkEditIssuesSchema,
 		]),
@@ -71,7 +70,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ result: submission.reply() })
 	}
 
-	if (submission.value.intent === 'create-issue') {
+	if (submission.value.intent === 'create-issue-inline') {
 		let newIssueId = await createIssue(submission.value)
 
 		return json(
@@ -183,7 +182,7 @@ export default function Issues() {
 	const submit = useSubmit()
 	const fetchers = useFetchers()
 	const pendingIssueFetchers = fetchers.filter(
-		fetcher => fetcher.formData?.get('intent') === 'create-issue',
+		fetcher => fetcher.formData?.get('intent') === 'create-issue-inline',
 	)
 
 	const deletedIssueTags = fetchers
@@ -217,13 +216,13 @@ export default function Issues() {
 	}, [issues, pendingIssueFetchers, deletedIssueTags])
 
 	const [form, fields] = useForm({
-		id: 'create-issue',
+		id: 'create-issue-inline',
 		// Adds required, min, etc props to the fields based on the schema
-		constraint: getZodConstraint(CreateIssueSchema),
+		constraint: getZodConstraint(CreateIssueInlineSchema),
 		// Tells conform about any errors we've had
 		lastResult: actionData?.result,
 		onValidate({ formData }) {
-			return parseWithZod(formData, { schema: CreateIssueSchema })
+			return parseWithZod(formData, { schema: CreateIssueInlineSchema })
 		},
 		onSubmit(event) {
 			event.preventDefault()
