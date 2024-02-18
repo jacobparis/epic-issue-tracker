@@ -23,6 +23,7 @@ import { prisma } from '#app/utils/db.server.ts'
 import { wait, parseRequest } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
 import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
+import { CreateIssueSchema } from './CreateIssueDialog'
 import { IssuesTable } from './IssuesTable'
 import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
 import { BulkEditIssuesSchema } from './useBulkEditIssues'
@@ -41,6 +42,7 @@ const CreateIssueInlineSchema = z.object({
 export async function action({ request }: ActionFunctionArgs) {
 	const submission = await parseRequest(request, {
 		schema: z.discriminatedUnion('intent', [
+			CreateIssueSchema,
 			CreateIssueInlineSchema,
 			BulkDeleteIssuesSchema,
 			BulkEditIssuesSchema,
@@ -70,7 +72,10 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ result: submission.reply() })
 	}
 
-	if (submission.value.intent === 'create-issue-inline') {
+	if (
+		submission.value.intent === 'create-issue-inline' ||
+		submission.value.intent === 'create-issue'
+	) {
 		let newIssueId = await createIssue(submission.value)
 
 		return json(
@@ -118,10 +123,9 @@ async function editIssues({
 	})
 }
 
-async function createIssue(issue: {
-	title: string
-	description?: string | undefined
-}) {
+async function createIssue(
+	issue: Omit<z.infer<typeof CreateIssueSchema>, 'intent'>,
+) {
 	let newIssueId = 0
 	await prisma.$transaction(async tx => {
 		const highestId = await tx.issue.findFirst({
@@ -144,8 +148,8 @@ async function createIssue(issue: {
 				number: newIssueId,
 				title: issue.title,
 				description: issue.description,
-				status: 'todo',
-				priority: 'medium',
+				status: issue.status ?? 'todo',
+				priority: issue.priority ?? 'medium',
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			},
@@ -182,7 +186,9 @@ export default function Issues() {
 	const submit = useSubmit()
 	const fetchers = useFetchers()
 	const pendingIssueFetchers = fetchers.filter(
-		fetcher => fetcher.formData?.get('intent') === 'create-issue-inline',
+		fetcher =>
+			fetcher.formData?.get('intent') === 'create-issue-inline' ||
+			fetcher.formData?.get('intent') === 'create-issue',
 	)
 
 	const deletedIssueTags = fetchers
@@ -202,8 +208,8 @@ export default function Issues() {
 					project: 'EIT',
 					number: 0,
 					title: String(fetcher.formData?.get('title')),
-					status: 'todo',
-					priority: 'medium',
+					status: String(fetcher.formData?.get('status')) ?? 'todo',
+					priority: String(fetcher.formData?.get('priority')) ?? 'medium',
 					createdAt: new Date().toString(),
 				})),
 			)

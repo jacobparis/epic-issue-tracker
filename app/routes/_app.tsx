@@ -7,6 +7,7 @@ import {
 } from '@remix-run/react'
 import clsx from 'clsx'
 import { getTableSchema } from '../schema.server'
+import { CreateIssueDialog } from './_app.issues.index/CreateIssueDialog'
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	return json({
@@ -30,6 +31,7 @@ export default function App() {
 	return (
 		<div className="flex">
 			<div className="flex min-h-screen min-w-[20ch] flex-col gap-y-1  border-r border-neutral-100 bg-white p-2">
+				<CreateIssueDialog />
 				<NavItem to="/">Home</NavItem>
 				<NavItem to="/issues">Issues</NavItem>
 			</div>
