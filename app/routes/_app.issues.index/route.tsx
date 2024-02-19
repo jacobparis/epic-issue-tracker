@@ -2,6 +2,7 @@
 
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
+import { invariant } from '@epic-web/invariant'
 import {
 	type MetaFunction,
 	type ActionFunctionArgs,
@@ -25,6 +26,7 @@ import { createToastHeaders } from '#app/utils/toast.server'
 import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { CreateIssueSchema } from './CreateIssueDialog'
 import { IssuesTable } from './IssuesTable'
+import { PaginationBar, IssuePaginationSchema } from './PaginationBar'
 import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
 import { BulkEditIssuesSchema } from './useBulkEditIssues'
 
@@ -159,7 +161,18 @@ async function createIssue(
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	const issues = await prisma.issue.findMany({
+	const url = new URL(request.url)
+
+	const submission = parseWithZod(url.searchParams, {
+		schema: IssuePaginationSchema.partial(),
+	})
+
+	invariant(submission.status === 'success', 'Invalid query params')
+
+	const { skip = 0, take = 10 } = submission.value
+
+	const whenTotalIssues = prisma.issue.count()
+	const whenIssues = prisma.issue.findMany({
 		orderBy: {
 			createdAt: 'asc',
 		},
@@ -172,15 +185,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			priority: true,
 			createdAt: true,
 		},
+		skip,
+		take,
 	})
 
 	return json({
-		issues,
+		issues: await whenIssues,
+		totalIssues: await whenTotalIssues,
 	})
 }
 
 export default function Issues() {
-	const { issues } = useLoaderData<typeof loader>()
+	const { issues, totalIssues } = useLoaderData<typeof loader>()
 	const actionData = useActionData<typeof action>()
 
 	const submit = useSubmit()
@@ -251,7 +267,7 @@ export default function Issues() {
 	return (
 		<div className="mx-auto max-w-4xl p-4">
 			<IssuesTable issues={memoizedIssues} />
-
+			<PaginationBar total={totalIssues} className="mt-2" />
 			<div className="mt-8">
 				<Form method="POST" {...getFormProps(form)}>
 					<input type="hidden" name="intent" value={form.id} />
