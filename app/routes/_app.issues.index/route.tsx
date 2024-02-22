@@ -23,7 +23,6 @@ import { Button } from '#app/components/ui/button.tsx'
 import { prisma } from '#app/utils/db.server.ts'
 import { wait, parseRequest } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
-import { parseProjectAndNumber } from '../_app.issues.$tag/parseProjectAndNumber'
 import { CreateIssueSchema } from './CreateIssueDialog'
 import { IssuesTable } from './IssuesTable'
 import { PaginationBar, IssuePaginationSchema } from './PaginationBar'
@@ -201,22 +200,26 @@ export default function Issues() {
 
 	const submit = useSubmit()
 	const fetchers = useFetchers()
-	const pendingIssueFetchers = fetchers.filter(
-		fetcher =>
-			fetcher.formData?.get('intent') === 'create-issue-inline' ||
-			fetcher.formData?.get('intent') === 'create-issue',
-	)
-
-	const deletedIssueTags = fetchers
-		.filter(fetcher => fetcher.data?.status !== 'error')
-		.map(fetcher => {
-			const [intent, key] = fetcher.key.split('@')
-			return { intent, key }
-		})
-		.filter(({ intent }) => intent === 'delete-issue')
-		.map(({ key }) => parseProjectAndNumber(key))
 
 	const memoizedIssues = useMemo(() => {
+		const pendingIssueFetchers = fetchers.filter(
+			fetcher =>
+				fetcher.formData?.get('intent') === 'create-issue-inline' ||
+				fetcher.formData?.get('intent') === 'create-issue',
+		)
+
+		const deletedIssueTags = fetchers
+			.filter(fetcher => fetcher.data?.status !== 'error')
+			.map(fetcher => {
+				const [intent, key] = fetcher.key.split('@')
+				return { intent, key }
+			})
+			.filter(({ intent }) => intent === 'delete-issue')
+			.map(({ key }) => {
+				const [project, number] = key.split('-')
+				return { project, number: Number(number) }
+			})
+
 		return issues
 			.concat(
 				...pendingIssueFetchers.map(fetcher => ({
@@ -235,7 +238,7 @@ export default function Issues() {
 						issue.project === project && issue.number === number,
 				)
 			})
-	}, [issues, pendingIssueFetchers, deletedIssueTags])
+	}, [fetchers, issues])
 
 	const [form, fields] = useForm({
 		id: 'create-issue-inline',

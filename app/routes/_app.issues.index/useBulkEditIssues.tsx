@@ -25,14 +25,12 @@ export function useBulkEditIssues() {
 		}
 	>
 
-	const editedIssues = useMemo(
-		() =>
-			fetchers
-				.filter(fetcher => fetcher.json?.intent === 'edit-issues')
-				.flatMap(fetcher => BulkEditIssuesSchema.parse(fetcher.json))
-				.filter(Boolean),
-		[fetchers],
-	)
+	const editedIssues = useMemo(() => {
+		return fetchers
+			.filter(fetcher => fetcher.json?.intent === 'edit-issues')
+			.flatMap(fetcher => BulkEditIssuesSchema.parse(fetcher.json))
+			.filter(Boolean)
+	}, [fetchers])
 
 	return [
 		editedIssues,

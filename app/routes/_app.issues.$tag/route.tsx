@@ -34,7 +34,7 @@ import { wait } from '#app/utils/misc'
 import { createToastHeaders, redirectWithToast } from '#app/utils/toast.server'
 import { useAppData } from '../_app'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
-import { parseProjectAndNumber } from './parseProjectAndNumber'
+import { parseProjectAndNumber } from './parseProjectAndNumber.server'
 
 export const meta: MetaFunction = ({ params }) => [
 	{
