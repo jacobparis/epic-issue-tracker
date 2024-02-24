@@ -210,6 +210,7 @@ export function IssuesTable({
 
 	return (
 		<div>
+			{memoizedIssues.length > 0 ? (
 			<div
 				className="flex items-center gap-x-2 p-2"
 				key={selectedIds.join(',')}
@@ -227,7 +228,9 @@ export function IssuesTable({
 						}}
 						className="mr-2"
 					/>
-					{`${selectedIds.length} / ${issueIds.length}`}
+						{`${selectedIds.length} / ${
+							issueIds.length - deletedIssueIds.length
+						}`}
 				</span>
 
 				{isAllSelected ? (
@@ -280,6 +283,7 @@ export function IssuesTable({
 					</>
 				) : null}
 			</div>
+			) : null}
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map(headerGroup => (
