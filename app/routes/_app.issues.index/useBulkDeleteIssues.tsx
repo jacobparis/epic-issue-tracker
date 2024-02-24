@@ -1,6 +1,6 @@
 import { useFetchers, useSubmit } from '@remix-run/react'
 import { z } from 'zod'
-import { useShallowArrayMemo } from '#app/utils/misc'
+import { parseFetcher } from '#app/utils/misc.js'
 
 export const BulkDeleteIssuesSchema = z.object({
 	intent: z.literal('delete-issues'),
@@ -10,24 +10,23 @@ export const BulkDeleteIssuesSchema = z.object({
 type BulkDeletePayload = z.infer<typeof BulkDeleteIssuesSchema>
 
 export function useBulkDeleteIssues() {
-	type BaseFetcher = ReturnType<typeof useFetchers>[number]
 	const submit = useSubmit()
+	const fetchers = useFetchers()
 
-	const fetchers = useFetchers() as Array<
-		Omit<BaseFetcher, 'json'> & {
-			json?: {
-				intent: string
-			}
-		}
-	>
+	const deletedIssueIds = fetchers.flatMap(fetcher => {
+		if (!fetcher) return []
+		const result = parseFetcher(fetcher, {
+			schema: BulkDeleteIssuesSchema,
+		})
 
-	const deletedIssueIds = fetchers
-		.filter(fetcher => fetcher.json?.intent === 'delete-issues')
-		.flatMap(fetcher => BulkDeleteIssuesSchema.parse(fetcher.json).issueIds)
-		.filter(Boolean)
+		if (result.status !== 'success') return []
+		if (!result.value) return []
+
+		return result.value.issueIds
+	})
 
 	return [
-		useShallowArrayMemo(deletedIssueIds),
+		deletedIssueIds,
 		({ issueIds }: Omit<BulkDeletePayload, 'intent'>) =>
 			submit(
 				{

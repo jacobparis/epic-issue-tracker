@@ -1,6 +1,10 @@
 import { type Submission } from '@conform-to/react'
 import { parse, parseWithZod } from '@conform-to/zod'
-import { useFormAction, useNavigation } from '@remix-run/react'
+import {
+	useFormAction,
+	useNavigation,
+	type useFetchers,
+} from '@remix-run/react'
 import { clsx, type ClassValue } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSpinDelay } from 'spin-delay'
@@ -384,4 +388,49 @@ export function setSearchParamsString(
 	}
 
 	return newSearchParams.toString()
+}
+
+export function parseFetcher<ZodSchema>(
+	fetcher: ReturnType<typeof useFetchers>[number],
+	{ schema }: { schema: z.Schema<ZodSchema> },
+) {
+	if (fetcher.json) {
+		const submission = schema.safeParse(fetcher.json)
+
+		if (submission.success) {
+			return {
+				status: 'success',
+				value: submission.data,
+			}
+		} else {
+			return {
+				status: 'error',
+				error: submission.error.errors.reduce(
+					(result, error) => {
+						result[String(error.path)] = [error.message]
+						return result
+					},
+					{} as Record<string, Array<string>>,
+				),
+			}
+		}
+	}
+
+	if (fetcher.formData) {
+		const submission = parseWithZod(fetcher.formData, { schema })
+
+		if (submission.status === 'success') {
+			return {
+				status: 'success',
+				value: submission.value,
+			}
+		} else {
+			return {
+				status: 'error',
+				error: submission.error,
+			}
+		}
+	}
+
+	throw new Error("Couldn't parse fetcher")
 }

@@ -198,35 +198,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function Issues() {
 	const { issues, issueIds, pageSize } = useLoaderData<typeof loader>()
 
-	const fetchers = useFetchers()
-	const memoizedIssues = useMemo(() => {
-		const deletedIssueTags = fetchers
-			.filter(fetcher => fetcher.data?.status !== 'error')
-			.map(fetcher => {
-				const [intent, key] = fetcher.key.split('@')
-				return { intent, key }
-			})
-			.filter(({ intent }) => intent === 'delete-issue')
-			.map(({ key }) => {
-				const [project, number] = key.split('-')
-				return { project, number: Number(number) }
-			})
-
-		return issues.filter(issue => {
-			return !deletedIssueTags.some(
-				({ project, number }) =>
-					issue.project === project && issue.number === number,
-			)
-		})
-	}, [fetchers, issues])
-
 	return (
 		<div className="mx-auto max-w-4xl p-4">
-			<IssuesTable
-				issues={memoizedIssues}
-				issueIds={issueIds}
-				pageSize={pageSize}
-			/>
+			<IssuesTable issues={issues} issueIds={issueIds} pageSize={pageSize} />
 			<PaginationBar total={issueIds.length} className="mt-2" />
 			<div className="mt-8">
 				<CreateIssueInlineForm />

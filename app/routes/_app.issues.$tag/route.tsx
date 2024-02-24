@@ -30,8 +30,6 @@ import { Input } from '#app/components/ui/input'
 import { SelectGroup, SelectItem } from '#app/components/ui/select'
 import { Textarea } from '#app/components/ui/textarea'
 import { prisma } from '#app/utils/db.server.ts'
-import { wait } from '#app/utils/misc'
-import { createToastHeaders, redirectWithToast } from '#app/utils/toast.server'
 import { useAppData } from '../_app'
 import { IssueBreadcrumbs } from './IssueBreadcrumbs'
 import { parseProjectAndNumber } from './parseProjectAndNumber.server'
@@ -50,17 +48,10 @@ const EditIssueSchema = z.object({
 	description: z.string().optional(),
 })
 
-const DeleteIssueSchema = z.object({
-	intent: z.literal('delete-issue'),
-})
-
 export async function action({ request, params }: ActionFunctionArgs) {
 	const formData = await request.formData()
 	const submission = parseWithZod(formData, {
-		schema: z.discriminatedUnion('intent', [
-			EditIssueSchema,
-			DeleteIssueSchema,
-		]),
+		schema: z.discriminatedUnion('intent', [EditIssueSchema]),
 	})
 
 	if (submission.status !== 'success') {
@@ -91,39 +82,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		})
 
 		return json({ result: submission.reply() })
-	}
-
-	if (submission.value.intent === 'delete-issue') {
-		await wait(3000)
-
-		const { project, number } = parseProjectAndNumber(params.tag)
-
-		try {
-			await prisma.issue.delete({
-				where: {
-					project_number: {
-						project,
-						number,
-					},
-				},
-			})
-		} catch (error) {
-			console.error(error)
-			return json(
-				{ result: submission.reply() },
-				{
-					headers: await createToastHeaders({
-						type: 'error',
-						description: 'Issue could not be deleted',
-					}),
-				},
-			)
-		}
-
-		return redirectWithToast('/issues', {
-			type: 'success',
-			description: 'Issue deleted',
-		})
 	}
 
 	throw new Response('Invalid intent', { status: 400 })
@@ -278,17 +236,18 @@ export default function Issues() {
 				</div>
 				<div className="flex-shrink-0 grow-0 basis-20 p-4">
 					<Form
+						action="/issues"
 						method="POST"
 						className="flex justify-end"
 						navigate={false}
-						fetcherKey={`delete-issue@${issue.project}-${issue.number}`}
 						onSubmit={() => {
 							navigate(`/issues`, {
 								replace: true,
 							})
 						}}
 					>
-						<input type="hidden" name="intent" value="delete-issue" />
+						<input type="hidden" name="intent" value="delete-issues" />
+						<input type="hidden" name="issueIds" value={issue.id} />
 						<Button
 							type="submit"
 							className="mt-2 whitespace-nowrap"
