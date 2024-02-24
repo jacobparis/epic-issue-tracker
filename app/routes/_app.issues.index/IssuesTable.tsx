@@ -52,6 +52,7 @@ export const columns: ColumnDef<IssueRow>[] = [
 		),
 	},
 	{
+		id: 'number',
 		accessorKey: 'number',
 		header: '#',
 		cell({ row }) {
@@ -75,6 +76,7 @@ export const columns: ColumnDef<IssueRow>[] = [
 		},
 	},
 	{
+		id: 'title',
 		header: 'Title',
 		accessorKey: 'title',
 		cell({ row }) {
@@ -82,14 +84,17 @@ export const columns: ColumnDef<IssueRow>[] = [
 		},
 	},
 	{
+		id: 'priority',
 		accessorKey: 'priority',
 		header: 'Priority',
 	},
 	{
+		id: 'status',
 		accessorKey: 'status',
 		header: 'Status',
 	},
 	{
+		id: 'createdAt',
 		accessorKey: 'createdAt',
 		header: 'Created',
 		accessorFn(row) {
@@ -107,11 +112,13 @@ export const columns: ColumnDef<IssueRow>[] = [
 	},
 ]
 
-let runawayRenders = 100
-export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
-	if (runawayRenders-- <= 0) {
-		throw new Error('Runaway renders')
-	}
+export function IssuesTable({
+	issues,
+	pageSize,
+}: {
+	issues: Array<IssueRow>
+	pageSize: number
+}) {
 	const navigate = useNavigate()
 	const [rowSelection, setRowSelection] = useState({})
 
@@ -137,8 +144,13 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 			})
 	}, [deletedIssueIds, editedIssues, issues])
 
+	const extraRows = Array(Math.max(0, pageSize - memoizedIssues.length)).fill(
+		undefined,
+	)
+
 	const table = useReactTable({
 		data: memoizedIssues,
+		manualPagination: true,
 		columns,
 		state: {
 			rowSelection,
@@ -272,7 +284,8 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 
 				<TableBody>
 					{table.getRowModel().rows?.length ? (
-						table.getRowModel().rows.map(row => (
+						<>
+							{table.getRowModel().rows.map(row => (
 							<TableRow
 								key={row.id}
 								data-state={row.getIsSelected() && 'selected'}
@@ -301,11 +314,29 @@ export function IssuesTable({ issues }: { issues: Array<IssueRow> }) {
 											)
 										}}
 									>
-										{flexRender(cell.column.columnDef.cell, cell.getContext())}
+											{flexRender(
+												cell.column.columnDef.cell,
+												cell.getContext(),
+											)}
+										</TableCell>
+									))}
+								</TableRow>
+							))}
+
+							{extraRows.map((row, i) => (
+								<TableRow
+									className="p-2"
+									key={`extra-${i}`}
+									data-key={`extra-${i}`}
+								>
+									{columns.map(column => (
+										<TableCell key={column.id} data-key={column.id}>
+											<div className="h-5" />
 									</TableCell>
 								))}
 							</TableRow>
-						))
+							))}
+						</>
 					) : (
 						<TableRow>
 							<TableCell colSpan={columns.length} className="h-24 text-center">

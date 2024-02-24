@@ -189,13 +189,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	})
 
 	return json({
+		pageSize: take,
 		issues: await whenIssues,
 		totalIssues: await whenTotalIssues,
 	})
 }
 
 export default function Issues() {
-	const { issues, totalIssues } = useLoaderData<typeof loader>()
+	const { issues, pageSize } = useLoaderData<typeof loader>()
 	const actionData = useActionData<typeof action>()
 
 	const submit = useSubmit()
@@ -269,8 +270,10 @@ export default function Issues() {
 
 	return (
 		<div className="mx-auto max-w-4xl p-4">
-			<IssuesTable issues={memoizedIssues} />
-			<PaginationBar total={totalIssues} className="mt-2" />
+			<IssuesTable
+				issues={memoizedIssues}
+				pageSize={pageSize}
+			/>
 			<div className="mt-8">
 				<Form method="POST" {...getFormProps(form)}>
 					<input type="hidden" name="intent" value={form.id} />
