@@ -31,6 +31,7 @@ import {
 import { useAppData } from '../_app'
 import { useBulkDeleteIssues } from './useBulkDeleteIssues'
 import { useBulkEditIssues } from './useBulkEditIssues'
+import { usePendingIssues } from './usePendingIssues'
 
 type IssueRow = Pick<
 	SerializeFrom<Issue>,
@@ -126,11 +127,13 @@ export function IssuesTable({
 
 	const [deletedIssueIds, deleteIssues] = useBulkDeleteIssues()
 	const [editedIssues, editIssues] = useBulkEditIssues()
+	const pendingIssues = usePendingIssues()
 
 	const memoizedIssues = useMemo(() => {
 		return issues
 			.slice(0, pageSize + deletedIssueIds.length)
 			.filter(issue => !deletedIssueIds.includes(issue.id))
+			.concat(pendingIssues)
 			.map(issue => {
 				const editedIssue = editedIssues.findLast(editedIssue =>
 					editedIssue.issueIds.includes(issue.id),
@@ -145,7 +148,7 @@ export function IssuesTable({
 
 				return issue
 			})
-	}, [deletedIssueIds, editedIssues, issues, pageSize])
+	}, [deletedIssueIds, editedIssues, issues, pageSize, pendingIssues])
 
 	const extraRows = Array(Math.max(0, pageSize - memoizedIssues.length)).fill(
 		undefined,
@@ -211,78 +214,78 @@ export function IssuesTable({
 	return (
 		<div>
 			{memoizedIssues.length > 0 ? (
-			<div
-				className="flex items-center gap-x-2 p-2"
-				key={selectedIds.join(',')}
-			>
-				<span className="inline-flex h-8 items-center justify-center gap-x-2 text-sm tabular-nums text-gray-600">
-					<Checkbox
-						checked={isCurrentPageSelected}
-						onCheckedChange={() => {
-							if (isCurrentPageSelected) {
-								table.resetRowSelection()
-								return
-							}
+				<div
+					className="flex items-center gap-x-2 p-2"
+					key={selectedIds.join(',')}
+				>
+					<span className="inline-flex h-8 items-center justify-center gap-x-2 text-sm tabular-nums text-gray-600">
+						<Checkbox
+							checked={isCurrentPageSelected}
+							onCheckedChange={() => {
+								if (isCurrentPageSelected) {
+									table.resetRowSelection()
+									return
+								}
 
-							selectPage()
-						}}
-						className="mr-2"
-					/>
+								selectPage()
+							}}
+							className="mr-2"
+						/>
 						{`${selectedIds.length} / ${
 							issueIds.length - deletedIssueIds.length
 						}`}
-				</span>
+					</span>
 
-				{isAllSelected ? (
-					<Button variant="link" onClick={() => table.resetRowSelection()}>
-						Deselect
-					</Button>
-				) : (
-					<Button variant="link" onClick={selectAll}>
-						Select all
-					</Button>
-				)}
-
-				{selectedIds.length > 0 ? (
-					<>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => {
-								deleteIssues({
-									issueIds: selectedIds,
-								})
-
-								table.resetRowSelection()
-							}}
-						>
-							Delete
+					{isAllSelected ? (
+						<Button variant="link" onClick={() => table.resetRowSelection()}>
+							Deselect
 						</Button>
+					) : (
+						<Button variant="link" onClick={selectAll}>
+							Select all
+						</Button>
+					)}
 
-						<Select
-							onValueChange={value => {
-								editIssues({
-									issueIds: selectedIds,
-									changeset: { priority: value },
-								})
-							}}
-						>
-							<SelectTrigger aria-label="Priority">
-								<SelectValue placeholder="Priority" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									{tableSchema.priorities.map(value => (
-										<SelectItem key={value} value={value}>
-											{value}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</>
-				) : null}
-			</div>
+					{selectedIds.length > 0 ? (
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									deleteIssues({
+										issueIds: selectedIds,
+									})
+
+									table.resetRowSelection()
+								}}
+							>
+								Delete
+							</Button>
+
+							<Select
+								onValueChange={value => {
+									editIssues({
+										issueIds: selectedIds,
+										changeset: { priority: value },
+									})
+								}}
+							>
+								<SelectTrigger aria-label="Priority">
+									<SelectValue placeholder="Priority" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{tableSchema.priorities.map(value => (
+											<SelectItem key={value} value={value}>
+												{value}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</>
+					) : null}
+				</div>
 			) : null}
 			<Table>
 				<TableHeader>
