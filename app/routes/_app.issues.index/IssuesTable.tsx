@@ -114,9 +114,11 @@ export const columns: ColumnDef<IssueRow>[] = [
 
 export function IssuesTable({
 	issues,
+	issueIds,
 	pageSize,
 }: {
 	issues: Array<IssueRow>
+	issueIds: Array<string>
 	pageSize: number
 }) {
 	const navigate = useNavigate()
@@ -127,6 +129,7 @@ export function IssuesTable({
 
 	const memoizedIssues = useMemo(() => {
 		return issues
+			.slice(0, pageSize + deletedIssueIds.length)
 			.filter(issue => !deletedIssueIds.includes(issue.id))
 			.map(issue => {
 				const editedIssue = editedIssues.findLast(editedIssue =>
@@ -142,7 +145,7 @@ export function IssuesTable({
 
 				return issue
 			})
-	}, [deletedIssueIds, editedIssues, issues])
+	}, [deletedIssueIds, editedIssues, issues, pageSize])
 
 	const extraRows = Array(Math.max(0, pageSize - memoizedIssues.length)).fill(
 		undefined,
@@ -162,13 +165,28 @@ export function IssuesTable({
 	})
 
 	const selectedIds = Object.keys(rowSelection)
-	const isAllSelected = selectedIds.length === issues.length
+	const isCurrentPageSelected = memoizedIssues.every(
+		row => row.id in rowSelection,
+	)
+	const isAllSelected = issueIds.every(issueId => issueId in rowSelection)
 
 	const selectAll = () => {
 		table.setRowSelection(existingSelection => {
 			const selection = { ...existingSelection }
 
-			for (const issue of issues) {
+			for (const issueId of issueIds) {
+				selection[issueId] = true
+			}
+
+			return selection
+		})
+	}
+
+	const selectPage = () => {
+		table.setRowSelection(existingSelection => {
+			const selection = { ...existingSelection }
+			const pageIssues = issues.slice(0, pageSize)
+			for (const issue of pageIssues) {
 				selection[issue.id] = true
 			}
 
@@ -193,24 +211,34 @@ export function IssuesTable({
 	return (
 		<div>
 			<div
-				className="flex items-center gap-x-4 p-2"
+				className="flex items-center gap-x-2 p-2"
 				key={selectedIds.join(',')}
 			>
 				<span className="inline-flex h-8 items-center justify-center gap-x-2 text-sm tabular-nums text-gray-600">
 					<Checkbox
-						checked={isAllSelected}
+						checked={isCurrentPageSelected}
 						onCheckedChange={() => {
-							if (isAllSelected) {
+							if (isCurrentPageSelected) {
 								table.resetRowSelection()
 								return
 							}
 
-							selectAll()
+							selectPage()
 						}}
 						className="mr-2"
 					/>
-					{`${selectedIds.length} selected`}
+					{`${selectedIds.length} / ${issueIds.length}`}
 				</span>
+
+				{isAllSelected ? (
+					<Button variant="link" onClick={() => table.resetRowSelection()}>
+						Deselect
+					</Button>
+				) : (
+					<Button variant="link" onClick={selectAll}>
+						Select all
+					</Button>
+				)}
 
 				{selectedIds.length > 0 ? (
 					<>
@@ -225,7 +253,7 @@ export function IssuesTable({
 								table.resetRowSelection()
 							}}
 						>
-							{`Delete ${selectedIds.length} items`}
+							Delete
 						</Button>
 
 						<Select
@@ -286,34 +314,34 @@ export function IssuesTable({
 					{table.getRowModel().rows?.length ? (
 						<>
 							{table.getRowModel().rows.map(row => (
-							<TableRow
-								key={row.id}
-								data-state={row.getIsSelected() && 'selected'}
-								className="cursor-pointer hover:bg-background/50 data-[state=selected]:bg-background"
-							>
-								{row.getVisibleCells().map(cell => (
-									<TableCell
-										key={cell.id}
-										onClick={event => {
-											// Don't navigate on pending issues
-											if (!row.original.number) return
+								<TableRow
+									key={row.id}
+									data-state={row.getIsSelected() && 'selected'}
+									className="cursor-pointer hover:bg-background/50 data-[state=selected]:bg-background"
+								>
+									{row.getVisibleCells().map(cell => (
+										<TableCell
+											key={cell.id}
+											onClick={event => {
+												// Don't navigate on pending issues
+												if (!row.original.number) return
 
-											// Don't navigate if this is a checkbox
-											if (cell.column.id === 'select') return
+												// Don't navigate if this is a checkbox
+												if (cell.column.id === 'select') return
 
-											if (event.metaKey) {
-												row.toggleSelected()
-												return
-											}
+												if (event.metaKey) {
+													row.toggleSelected()
+													return
+												}
 
-											// Don't navigate if other checkboxes are clicked
-											if (table.getIsSomeRowsSelected()) return
+												// Don't navigate if other checkboxes are clicked
+												if (table.getIsSomeRowsSelected()) return
 
-											navigate(
-												`/issues/${row.original.project}-${row.original.number}`,
-											)
-										}}
-									>
+												navigate(
+													`/issues/${row.original.project}-${row.original.number}`,
+												)
+											}}
+										>
 											{flexRender(
 												cell.column.columnDef.cell,
 												cell.getContext(),
@@ -332,9 +360,9 @@ export function IssuesTable({
 									{columns.map(column => (
 										<TableCell key={column.id} data-key={column.id}>
 											<div className="h-5" />
-									</TableCell>
-								))}
-							</TableRow>
+										</TableCell>
+									))}
+								</TableRow>
 							))}
 						</>
 					) : (

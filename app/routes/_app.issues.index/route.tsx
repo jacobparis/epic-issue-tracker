@@ -8,6 +8,7 @@ import {
 	type ActionFunctionArgs,
 	json,
 	type LoaderFunctionArgs,
+	defer,
 } from '@remix-run/node'
 import {
 	Form,
@@ -170,7 +171,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	const { skip = 0, take = 10 } = submission.value
 
-	const whenTotalIssues = prisma.issue.count()
+	const whenIssueIds = prisma.issue
+		.findMany({
+			orderBy: {
+				createdAt: 'asc',
+			},
+			select: {
+				id: true,
+			},
+		})
+		.then(issues => issues.map(issue => issue.id))
+
 	const whenIssues = prisma.issue.findMany({
 		orderBy: {
 			createdAt: 'asc',
@@ -185,18 +196,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			createdAt: true,
 		},
 		skip,
-		take,
+		take: take * 2,
 	})
 
 	return json({
 		pageSize: take,
 		issues: await whenIssues,
-		totalIssues: await whenTotalIssues,
+		issueIds: await whenIssueIds,
 	})
 }
 
 export default function Issues() {
-	const { issues, pageSize } = useLoaderData<typeof loader>()
+	const { issues, issueIds, pageSize } = useLoaderData<typeof loader>()
 	const actionData = useActionData<typeof action>()
 
 	const submit = useSubmit()
@@ -272,8 +283,10 @@ export default function Issues() {
 		<div className="mx-auto max-w-4xl p-4">
 			<IssuesTable
 				issues={memoizedIssues}
+				issueIds={issueIds}
 				pageSize={pageSize}
 			/>
+			<PaginationBar total={issueIds.length} className="mt-2" />
 			<div className="mt-8">
 				<Form method="POST" {...getFormProps(form)}>
 					<input type="hidden" name="intent" value={form.id} />
