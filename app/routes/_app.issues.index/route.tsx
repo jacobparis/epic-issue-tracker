@@ -7,10 +7,11 @@ import {
 	type ActionFunctionArgs,
 	json,
 	type LoaderFunctionArgs,
+	redirect,
 } from '@remix-run/node'
-import { useFetchers, useLoaderData } from '@remix-run/react'
-import { useMemo } from 'react'
+import { useLoaderData } from '@remix-run/react'
 import { z } from 'zod'
+import { getTableSchema } from '#app/schema.server.js'
 import { prisma } from '#app/utils/db.server.ts'
 import { wait, parseRequest } from '#app/utils/misc'
 import { createToastHeaders } from '#app/utils/toast.server'
@@ -19,6 +20,12 @@ import {
 	CreateIssueInlineSchema,
 	CreateIssueInlineForm,
 } from './CreateIssueInlineForm'
+import {
+	CreateSampleIssueSchema,
+	getRandomDate,
+	getRandomStoryName,
+	getRandomValue,
+} from './CreateSampleIssuesDialog'
 import { IssuesTable } from './IssuesTable'
 import { PaginationBar, IssuePaginationSchema } from './PaginationBar'
 import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
@@ -35,6 +42,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		schema: z.discriminatedUnion('intent', [
 			CreateIssueSchema,
 			CreateIssueInlineSchema,
+			CreateSampleIssueSchema,
 			BulkDeleteIssuesSchema,
 			BulkEditIssuesSchema,
 		]),
@@ -54,7 +62,15 @@ export async function action({ request }: ActionFunctionArgs) {
 	if (submission.value.intent === 'delete-issues') {
 		await deleteIssues(submission.value)
 
-		return json({ result: submission.reply() })
+		return json(
+			{ result: submission.reply() },
+			{
+				headers: await createToastHeaders({
+					description: `Deleted ${submission.value.issueIds.length} issues`,
+					type: 'success',
+				}),
+			},
+		)
 	}
 
 	if (submission.value.intent === 'edit-issues') {
@@ -83,6 +99,18 @@ export async function action({ request }: ActionFunctionArgs) {
 				}),
 			},
 		)
+	}
+
+	if (submission.value.intent === 'create-sample-issues') {
+		const count = 500
+		await createSampleIssues({ count })
+
+		return redirect('/issues', {
+			headers: await createToastHeaders({
+				description: `Created ${count} sample issues`,
+				type: 'success',
+			}),
+		})
 	}
 }
 
@@ -147,6 +175,55 @@ async function createIssue(
 		})
 	})
 	return newIssueId
+}
+
+export async function createSampleIssues({ count }: { count: number }) {
+	const schema = await getTableSchema()
+
+	const issues = Array.from({ length: count }, (_, i) => {
+		const createdAt = getRandomDate()
+		const updatedAt = getRandomDate(new Date(createdAt))
+
+		return {
+			project: 'EIT',
+			number: null,
+			title: getRandomStoryName(),
+			description: 'This is a sample issue for development purposes',
+			status: getRandomValue(schema.statuses),
+			priority: getRandomValue(schema.priorities),
+			createdAt,
+			updatedAt,
+		}
+	}).toSorted(
+		(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+	)
+
+	await prisma.$transaction(async tx => {
+		const highestId = await tx.issue.findFirst({
+			where: {
+				project: 'EIT',
+			},
+			orderBy: {
+				number: 'desc',
+			},
+			select: {
+				number: true,
+			},
+		})
+
+		const baseNumber = highestId ? highestId.number + 1 : 1
+
+		return Promise.all(
+			issues.map((issue, i) => {
+				return tx.issue.create({
+					data: {
+						...issue,
+						number: baseNumber + i,
+					},
+				})
+			}),
+		)
+	})
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {

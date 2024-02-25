@@ -1,6 +1,7 @@
 import { useFetchers, useSubmit } from '@remix-run/react'
 import { useMemo } from 'react'
 import { z } from 'zod'
+import { parseFetcher } from '#app/utils/misc.js'
 
 export const BulkEditIssuesSchema = z.object({
 	intent: z.literal('edit-issues'),
@@ -8,28 +9,29 @@ export const BulkEditIssuesSchema = z.object({
 	changeset: z.object({
 		status: z.string().optional(),
 		priority: z.string().optional(),
+		title: z.string().optional(),
+		description: z.string().optional(),
 	}),
 })
 
 type BulkEditPayload = z.infer<typeof BulkEditIssuesSchema>
 
 export function useBulkEditIssues() {
-	type BaseFetcher = ReturnType<typeof useFetchers>[number]
 	const submit = useSubmit()
-
-	const fetchers = useFetchers() as Array<
-		Omit<BaseFetcher, 'json'> & {
-			json?: {
-				intent: string
-			}
-		}
-	>
+	const fetchers = useFetchers()
 
 	const editedIssues = useMemo(() => {
-		return fetchers
-			.filter(fetcher => fetcher.json?.intent === 'edit-issues')
-			.flatMap(fetcher => BulkEditIssuesSchema.parse(fetcher.json))
-			.filter(Boolean)
+		return fetchers.flatMap(fetcher => {
+			if (!fetcher) return []
+			const result = parseFetcher(fetcher, {
+				schema: BulkEditIssuesSchema,
+			})
+
+			if (result.status !== 'success') return []
+			if (!result.value) return []
+
+			return result.value
+		})
 	}, [fetchers])
 
 	return [

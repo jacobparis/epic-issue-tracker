@@ -29,6 +29,7 @@ import {
 	TableRow,
 } from '#app/components/ui/table.tsx'
 import { useAppData } from '../_app'
+import { CreateSampleIssuesDialog } from './CreateSampleIssuesDialog'
 import { useBulkDeleteIssues } from './useBulkDeleteIssues'
 import { useBulkEditIssues } from './useBulkEditIssues'
 import { usePendingIssues } from './usePendingIssues'
@@ -375,7 +376,9 @@ export function IssuesTable({
 					) : (
 						<TableRow>
 							<TableCell colSpan={columns.length} className="h-24 text-center">
-								No results.
+								No issues found.
+								<br />
+								<CreateSampleIssuesDialog />
 							</TableCell>
 						</TableRow>
 					)}
