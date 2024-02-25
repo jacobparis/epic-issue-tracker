@@ -132,7 +132,7 @@ export function IssuesTable({
 
 	const memoizedIssues = useMemo(() => {
 		return issues
-			.slice(0, pageSize + deletedIssueIds.length)
+			.slice(0, pageSize ? pageSize + deletedIssueIds.length : undefined)
 			.filter(issue => !deletedIssueIds.includes(issue.id))
 			.concat(pendingIssues)
 			.map(issue => {

@@ -28,6 +28,7 @@ import {
 } from './CreateSampleIssuesDialog'
 import { IssuesTable } from './IssuesTable'
 import { PaginationBar, IssuePaginationSchema } from './PaginationBar'
+import { PaginationLimitSelect } from './PaginationLimitSelect'
 import { BulkDeleteIssuesSchema } from './useBulkDeleteIssues'
 import { BulkEditIssuesSchema } from './useBulkEditIssues'
 
@@ -177,7 +178,7 @@ async function createIssue(
 	return newIssueId
 }
 
-export async function createSampleIssues({ count }: { count: number }) {
+async function createSampleIssues({ count }: { count: number }) {
 	const schema = await getTableSchema()
 
 	const issues = Array.from({ length: count }, (_, i) => {
@@ -261,8 +262,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			priority: true,
 			createdAt: true,
 		},
-		skip,
-		take: take * 2,
+		skip: take ? skip : undefined,
+		take: take ? take * 2 : undefined,
 	})
 
 	return json({
@@ -278,7 +279,11 @@ export default function Issues() {
 	return (
 		<div className="mx-auto max-w-4xl p-4">
 			<IssuesTable issues={issues} issueIds={issueIds} pageSize={pageSize} />
-			<PaginationBar total={issueIds.length} className="mt-2" />
+			<div className="mt-2 flex justify-between">
+				{pageSize ? <PaginationBar total={issueIds.length} /> : null}
+
+				<PaginationLimitSelect defaultValue={String(pageSize)} />
+			</div>
 			<div className="mt-8">
 				<CreateIssueInlineForm />
 			</div>
