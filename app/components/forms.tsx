@@ -83,12 +83,6 @@ export function SelectField({
 	return (
 		<div className={className}>
 			<Label htmlFor={id} {...labelProps} />
-			<Select
-				id={id}
-				aria-invalid={errorId ? true : undefined}
-				aria-describedby={errorId}
-				{...inputProps}
-			/>
 			<Select id={id} {...inputProps}>
 				<SelectTrigger className="w-full">
 					<SelectValue />
