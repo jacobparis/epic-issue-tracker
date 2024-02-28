@@ -1,5 +1,6 @@
 // http://localhost:3000/issues
 
+import { getSelectProps } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { invariant } from '@epic-web/invariant'
 import {
@@ -9,7 +10,8 @@ import {
 	type LoaderFunctionArgs,
 	redirect,
 } from '@remix-run/node'
-import { useLoaderData } from '@remix-run/react'
+import { useLoaderData, useLocation } from '@remix-run/react'
+import { useDeferredValue, useEffect } from 'react'
 import { z } from 'zod'
 import { getTableSchema } from '#app/schema.server.js'
 import { prisma } from '#app/utils/db.server.ts'
@@ -26,6 +28,7 @@ import {
 	getRandomStoryName,
 	getRandomValue,
 } from './CreateSampleIssuesDialog'
+import { IssueFilterSchema, IssueFilterBar } from './IssueFilterBar'
 import { IssuesTable } from './IssuesTable'
 import { PaginationBar, IssuePaginationSchema } from './PaginationBar'
 import { PaginationLimitSelect } from './PaginationLimitSelect'
@@ -231,15 +234,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const url = new URL(request.url)
 
 	const submission = parseWithZod(url.searchParams, {
-		schema: IssuePaginationSchema.partial(),
+		schema: IssuePaginationSchema.merge(IssueFilterSchema).partial(),
 	})
 
 	invariant(submission.status === 'success', 'Invalid query params')
 
-	const { skip = 0, take = 10 } = submission.value
+	const { skip = 0, take = 10, status, priority, title } = submission.value
 
+	const where = {
+		title: title ? { contains: title } : undefined,
+		status: status && status !== 'any' ? status : undefined,
+		priority: priority && priority !== 'any' ? priority : undefined,
+	}
 	const whenIssueIds = prisma.issue
 		.findMany({
+			where,
 			orderBy: {
 				createdAt: 'asc',
 			},
@@ -250,6 +259,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		.then(issues => issues.map(issue => issue.id))
 
 	const whenIssues = prisma.issue.findMany({
+		where,
 		orderBy: {
 			createdAt: 'asc',
 		},
@@ -278,6 +288,7 @@ export default function Issues() {
 
 	return (
 		<div className="mx-auto max-w-4xl p-4">
+			<IssueFilterBar />
 			<IssuesTable issues={issues} issueIds={issueIds} pageSize={pageSize} />
 			<div className="mt-2 flex justify-between">
 				{pageSize ? <PaginationBar total={issueIds.length} /> : null}
