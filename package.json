@@ -105,7 +105,7 @@
     "source-map-support": "^0.5.21",
     "spin-delay": "^1.2.0",
     "tailwind-merge": "^2.0.0",
-    "tailwindcss": "^3.3.5",
+    "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-radix": "^2.8.0",
     "zod": "^3.22.4"
@@ -117,7 +117,7 @@
     "@remix-run/eslint-config": "2.7.2",
     "@remix-run/serve": "2.7.2",
     "@remix-run/testing": "2.7.2",
-    "@sly-cli/sly": "^1.4.10",
+    "@sly-cli/sly": "^1.10.0",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",

@@ -2,13 +2,9 @@ import { type Issue } from '@prisma/client'
 import { type SerializeFrom } from '@remix-run/node'
 
 import { Link, useNavigate } from '@remix-run/react'
-import {
-	useReactTable,
-	type ColumnDef,
-	getCoreRowModel,
-	flexRender,
-} from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+
+import { type MouseEventHandler, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { Button } from '#app/components/ui/button'
 import { Checkbox } from '#app/components/ui/checkbox'
@@ -20,14 +16,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '#app/components/ui/select'
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '#app/components/ui/table.tsx'
 import { useAppData } from '../_app'
 import { CreateSampleIssuesDialog } from './CreateSampleIssuesDialog'
 import { useBulkDeleteIssues } from './useBulkDeleteIssues'
@@ -39,81 +27,6 @@ type IssueRow = Pick<
 	'id' | 'number' | 'project' | 'title' | 'status' | 'priority' | 'createdAt'
 >
 
-export const columns: ColumnDef<IssueRow>[] = [
-	{
-		id: 'select',
-		cell: ({ row }) => (
-			<div className="mr-2">
-				<Checkbox
-					checked={row.getIsSelected()}
-					onCheckedChange={value => row.toggleSelected(Boolean(value))}
-					aria-label="Select row"
-					className="translate-y-[2px]"
-				/>
-			</div>
-		),
-	},
-	{
-		id: 'number',
-		accessorKey: 'number',
-		header: '#',
-		cell({ row }) {
-			if (!row.original.number)
-				return (
-					<span className="min-w-[4rem]">
-						<span className="sr-only">Creating…</span>
-					</span>
-				)
-
-			const idString = String(row.original.number).padStart(3, '0')
-
-			return (
-				<Link
-					to={`/issues/${row.original.project}-${row.original.number}`}
-					className="min-w-[4rem] text-muted-foreground"
-				>
-					{idString}
-				</Link>
-			)
-		},
-	},
-	{
-		id: 'title',
-		header: 'Title',
-		accessorKey: 'title',
-		cell({ row }) {
-			return <span className="font-medium">{row.getValue('title')}</span>
-		},
-	},
-	{
-		id: 'priority',
-		accessorKey: 'priority',
-		header: 'Priority',
-	},
-	{
-		id: 'status',
-		accessorKey: 'status',
-		header: 'Status',
-	},
-	{
-		id: 'createdAt',
-		accessorKey: 'createdAt',
-		header: 'Created',
-		accessorFn(row) {
-			return new Date(row.createdAt).toLocaleDateString('en-US', {
-				month: 'short',
-				day: 'numeric',
-				year: 'numeric',
-			})
-		},
-		cell({ row }) {
-			return (
-				<span className="whitespace-nowrap">{row.getValue('createdAt')}</span>
-			)
-		},
-	},
-]
-
 export function IssuesTable({
 	issues,
 	issueIds,
@@ -124,8 +37,9 @@ export function IssuesTable({
 	pageSize: number
 }) {
 	const navigate = useNavigate()
-	const [rowSelection, setRowSelection] = useState({})
-
+	const [state, setState] = useState(1)
+	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
+	console.log(rowSelection)
 	const [deletedIssueIds, deleteIssues] = useBulkDeleteIssues()
 	const [editedIssues, editIssues] = useBulkEditIssues()
 	const pendingIssues = usePendingIssues()
@@ -155,19 +69,6 @@ export function IssuesTable({
 		undefined,
 	)
 
-	const table = useReactTable({
-		data: memoizedIssues,
-		manualPagination: true,
-		columns,
-		state: {
-			rowSelection,
-		},
-		enableRowSelection: true,
-		onRowSelectionChange: setRowSelection,
-		getCoreRowModel: getCoreRowModel(),
-		getRowId: row => row.id,
-	})
-
 	const selectedIds = Object.keys(rowSelection)
 	const isCurrentPageSelected = memoizedIssues.every(
 		row => row.id in rowSelection,
@@ -175,7 +76,7 @@ export function IssuesTable({
 	const isAllSelected = issueIds.every(issueId => issueId in rowSelection)
 
 	const selectAll = () => {
-		table.setRowSelection(existingSelection => {
+		setRowSelection(existingSelection => {
 			const selection = { ...existingSelection }
 
 			for (const issueId of issueIds) {
@@ -187,7 +88,7 @@ export function IssuesTable({
 	}
 
 	const selectPage = () => {
-		table.setRowSelection(existingSelection => {
+		setRowSelection(existingSelection => {
 			const selection = { ...existingSelection }
 			const pageIssues = issues.slice(0, pageSize)
 			for (const issue of pageIssues) {
@@ -207,7 +108,7 @@ export function IssuesTable({
 	useHotkeys('meta+shift+a', event => {
 		event.preventDefault()
 
-		table.resetRowSelection()
+		setRowSelection({})
 	})
 
 	const { tableSchema } = useAppData()
@@ -224,7 +125,7 @@ export function IssuesTable({
 							checked={isCurrentPageSelected}
 							onCheckedChange={() => {
 								if (isCurrentPageSelected) {
-									table.resetRowSelection()
+									setRowSelection({})
 									return
 								}
 
@@ -238,7 +139,7 @@ export function IssuesTable({
 					</span>
 
 					{isAllSelected ? (
-						<Button variant="link" onClick={() => table.resetRowSelection()}>
+						<Button variant="link" onClick={() => setRowSelection({})}>
 							Deselect
 						</Button>
 					) : (
@@ -257,7 +158,7 @@ export function IssuesTable({
 										issueIds: selectedIds,
 									})
 
-									table.resetRowSelection()
+									setRowSelection({})
 								}}
 							>
 								Delete
@@ -288,102 +189,108 @@ export function IssuesTable({
 					) : null}
 				</div>
 			) : null}
-			<Table>
-				<TableHeader>
-					{table.getHeaderGroups().map(headerGroup => (
-						<TableRow key={headerGroup.id} className="sr-only">
-							{headerGroup.headers.map(header => {
+			<div className="text-sm">
+				<div className="grid grid-cols-[min-content_min-content_1fr_min-content_min-content_min-content]">
+					{memoizedIssues.length > 0 ? (
+						<>
+							{memoizedIssues.map(issue => {
+								const navigateToIssue: MouseEventHandler = event => {
+									// Don't navigate on pending issues
+									if (!issue.number) return
+
+									if (event.metaKey) {
+										setRowSelection(existingSelection => {
+											const selection = { ...existingSelection }
+											selection[issue.id] = !selection[issue.id]
+											return selection
+										})
+
+										return
+									}
+
+									// Don't navigate if other checkboxes are clicked
+									if (Object.values(rowSelection).some(Boolean)) return
+
+									navigate(`/issues/${issue.project}-${issue.number}`)
+								}
+
 								return (
-									<TableHead key={header.id}>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-											  )}
-									</TableHead>
+									<div
+										key={issue.id}
+										data-state={rowSelection[issue.id] && 'selected'}
+										className="grid-cols-subgrid col-span-6 grid hover:bg-background/50 data-[state=selected]:bg-background"
+									>
+										<div className="p-2 align-middle">
+											<Checkbox
+												checked={rowSelection[issue.id] ?? false}
+												onCheckedChange={value => {
+													setRowSelection(existingSelection => {
+														const selection = { ...existingSelection }
+														if (!value) {
+															delete selection[issue.id]
+														} else {
+															selection[issue.id] = true
+														}
+
+														return selection
+													})
+												}}
+												aria-label="Select row"
+												className="translate-y-[2px]"
+											/>
+										</div>
+
+										<div className="p-2 align-middle">
+											{!issue.number ? (
+												<span className="min-w-[4rem]">
+													<span className="sr-only">Creating…</span>
+												</span>
+											) : (
+												<Link
+													to={`/issues/${issue.project}-${issue.number}`}
+													className="min-w-[4rem] text-muted-foreground"
+												>
+													{String(issue.number).padStart(3, '0')}
+												</Link>
+											)}
+										</div>
+
+										<div className="p-2 align-middle" onClick={navigateToIssue}>
+											<span className="font-medium">{issue.title}</span>
+										</div>
+
+										<div className="p-2 align-middle" onClick={navigateToIssue}>
+											<span>{issue.priority}</span>
+										</div>
+
+										<div className="p-2 align-middle" onClick={navigateToIssue}>
+											<span>{issue.status}</span>
+										</div>
+
+										<div className="p-2 align-middle" onClick={navigateToIssue}>
+											<span className="whitespace-nowrap">
+												{issue.createdAt}
+											</span>
+										</div>
+									</div>
 								)
 							})}
-						</TableRow>
-					))}
-				</TableHeader>
-
-				<colgroup>
-					{/* Make the title column take up the rest of available space */}
-					{table.getAllColumns().map(column => (
-						<col
-							key={column.id}
-							className={column.id === 'title' ? 'w-full' : 'w-0'}
-						/>
-					))}
-				</colgroup>
-
-				<TableBody>
-					{table.getRowModel().rows?.length ? (
-						<>
-							{table.getRowModel().rows.map(row => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && 'selected'}
-									className="cursor-pointer hover:bg-background/50 data-[state=selected]:bg-background"
-								>
-									{row.getVisibleCells().map(cell => (
-										<TableCell
-											key={cell.id}
-											onClick={event => {
-												// Don't navigate on pending issues
-												if (!row.original.number) return
-
-												// Don't navigate if this is a checkbox
-												if (cell.column.id === 'select') return
-
-												if (event.metaKey) {
-													row.toggleSelected()
-													return
-												}
-
-												// Don't navigate if other checkboxes are clicked
-												if (table.getIsSomeRowsSelected()) return
-
-												navigate(
-													`/issues/${row.original.project}-${row.original.number}`,
-												)
-											}}
-										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</TableCell>
-									))}
-								</TableRow>
-							))}
 
 							{extraRows.map((row, i) => (
-								<TableRow
-									className="p-2"
-									key={`extra-${i}`}
-									data-key={`extra-${i}`}
-								>
-									{columns.map(column => (
-										<TableCell key={column.id} data-key={column.id}>
-											<div className="h-5" />
-										</TableCell>
-									))}
-								</TableRow>
+								<div className="p-2" key={`extra-${i}`} data-key={`extra-${i}`}>
+									<div className="h-5" />
+								</div>
 							))}
 						</>
 					) : (
-						<TableRow>
-							<TableCell colSpan={columns.length} className="h-24 text-center">
-								No issues found.
-								<br />
-								<CreateSampleIssuesDialog />
-							</TableCell>
-						</TableRow>
+						<div className="h-24 text-center">
+							No issues found.
+							<br />
+							<CreateSampleIssuesDialog />
+						</div>
 					)}
-				</TableBody>
-			</Table>
+				</div>
+			</div>
 		</div>
 	)
 }
