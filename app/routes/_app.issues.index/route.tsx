@@ -1,6 +1,5 @@
 // http://localhost:3000/issues
 
-import { getSelectProps } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { invariant } from '@epic-web/invariant'
 import {
@@ -10,8 +9,9 @@ import {
 	type LoaderFunctionArgs,
 	redirect,
 } from '@remix-run/node'
-import { useLoaderData, useLocation } from '@remix-run/react'
-import { useDeferredValue, useEffect } from 'react'
+import {
+	useLoaderData,
+} from '@remix-run/react'
 import { z } from 'zod'
 import { getTableSchema } from '#app/schema.server.js'
 import { prisma } from '#app/utils/db.server.ts'
@@ -258,23 +258,37 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		})
 		.then(issues => issues.map(issue => issue.id))
 
-	const whenIssues = prisma.issue.findMany({
-		where,
-		orderBy: {
-			createdAt: 'asc',
-		},
-		select: {
-			id: true,
-			project: true,
-			number: true,
-			title: true,
-			status: true,
-			priority: true,
-			createdAt: true,
-		},
-		skip: take ? skip : undefined,
-		take: take ? take * 2 : undefined,
-	})
+	// process.env.TZ = 'Europe/London'
+	// process.env.TZ = 'America/New_York'
+	const whenIssues = prisma.issue
+		.findMany({
+			where,
+			orderBy: {
+				createdAt: 'asc',
+			},
+			select: {
+				id: true,
+				project: true,
+				number: true,
+				title: true,
+				status: true,
+				priority: true,
+				createdAt: true,
+			},
+			skip: take ? skip : undefined,
+			take: take ? take * 2 : undefined,
+		})
+		.then(issues =>
+			issues.map(issue => ({
+				...issue,
+				createdAt: issue.createdAt.toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'short',
+					day: 'numeric',
+					hour: 'numeric',
+				}),
+			})),
+		)
 
 	return json({
 		pageSize: take,
