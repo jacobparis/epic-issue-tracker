@@ -37,9 +37,7 @@ export function IssuesTable({
 	pageSize: number
 }) {
 	const navigate = useNavigate()
-	const [state, setState] = useState(1)
 	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
-	console.log(rowSelection)
 	const [deletedIssueIds, deleteIssues] = useBulkDeleteIssues()
 	const [editedIssues, editIssues] = useBulkEditIssues()
 	const pendingIssues = usePendingIssues()
@@ -90,7 +88,7 @@ export function IssuesTable({
 	const selectPage = () => {
 		setRowSelection(existingSelection => {
 			const selection = { ...existingSelection }
-			const pageIssues = issues.slice(0, pageSize)
+			const pageIssues = issues.slice(0, pageSize || undefined)
 			for (const issue of pageIssues) {
 				selection[issue.id] = true
 			}
@@ -209,7 +207,7 @@ export function IssuesTable({
 									}
 
 									// Don't navigate if other checkboxes are clicked
-									if (Object.values(rowSelection).some(Boolean)) return
+									if (selectedIds.length > 0) return
 
 									navigate(`/issues/${issue.project}-${issue.number}`)
 								}
@@ -255,19 +253,31 @@ export function IssuesTable({
 											)}
 										</div>
 
-										<div className="p-2 align-middle" onClick={navigateToIssue}>
+										<div
+											className="cursor-pointer p-2 align-middle "
+											onClick={navigateToIssue}
+										>
 											<span className="font-medium">{issue.title}</span>
 										</div>
 
-										<div className="p-2 align-middle" onClick={navigateToIssue}>
+										<div
+											className="cursor-pointer p-2 align-middle "
+											onClick={navigateToIssue}
+										>
 											<span>{issue.priority}</span>
 										</div>
 
-										<div className="p-2 align-middle" onClick={navigateToIssue}>
+										<div
+											className="cursor-pointer p-2 align-middle "
+											onClick={navigateToIssue}
+										>
 											<span>{issue.status}</span>
 										</div>
 
-										<div className="p-2 align-middle" onClick={navigateToIssue}>
+										<div
+											className="p-2 text-right align-middle"
+											onClick={navigateToIssue}
+										>
 											<span className="whitespace-nowrap">
 												{issue.createdAt}
 											</span>
